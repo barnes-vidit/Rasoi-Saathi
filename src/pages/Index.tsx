@@ -1,7 +1,7 @@
-import { RasoiLinkApp } from "@/components/RasoiLinkApp";
+import { RasoiLinkAppIntegrated } from "@/components/RasoiLinkAppIntegrated";
 
 const Index = () => {
-  return <RasoiLinkApp />;
+  return <RasoiLinkAppIntegrated />;
 };
 
 export default Index;
