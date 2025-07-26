@@ -2,6 +2,7 @@ import { useState } from "react";
 import { LanguagePicker } from "./LanguagePicker";
 import { PhoneLogin } from "./PhoneLogin";
 import { GroupOrdersList } from "./GroupOrdersList";
+import { VendorSelection } from "./VendorSelection";
 import { ItemSelection } from "./ItemSelection";
 import { OrderSummary } from "./OrderSummary";
 import { PaymentScreen } from "./PaymentScreen";
@@ -15,6 +16,7 @@ type AppScreen =
   | 'language' 
   | 'login' 
   | 'orders' 
+  | 'vendors'
   | 'items' 
   | 'summary' 
   | 'payment' 
@@ -31,6 +33,7 @@ export const RasoiLinkApp = () => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [userType, setUserType] = useState<'vendor' | 'supplier'>('vendor');
   const [selectedGroupOrder, setSelectedGroupOrder] = useState<string | null>(null);
+  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
 
   const handleLanguageSelect = (lang: 'hi' | 'en') => {
     setLanguage(lang);
@@ -52,6 +55,11 @@ export const RasoiLinkApp = () => {
 
   const handleStartOrder = () => {
     setSelectedGroupOrder(null);
+    setCurrentScreen('vendors');
+  };
+
+  const handleVendorSelect = (vendorId: string) => {
+    setSelectedVendor(vendorId);
     setCurrentScreen('items');
   };
 
@@ -123,11 +131,20 @@ export const RasoiLinkApp = () => {
           />
         );
       
+      case 'vendors':
+        return (
+          <VendorSelection 
+            language={language}
+            onBack={() => setCurrentScreen('orders')}
+            onVendorSelect={handleVendorSelect}
+          />
+        );
+      
       case 'items':
         return (
           <ItemSelection 
             language={language}
-            onBack={() => setCurrentScreen('orders')}
+            onBack={() => setCurrentScreen(selectedVendor ? 'vendors' : 'orders')}
             onAddToCart={handleAddToCart}
           />
         );
