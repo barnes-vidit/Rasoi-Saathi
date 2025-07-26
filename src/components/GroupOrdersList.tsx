@@ -18,6 +18,7 @@ interface GroupOrder {
   vendorCount: number;
   timeLeft: string;
   location: string;
+  vendorName: string;
   status: 'forming' | 'confirmed' | 'delivered';
 }
 
@@ -61,6 +62,7 @@ export const GroupOrdersList = ({ language, onJoinOrder, onStartOrder }: GroupOr
       vendorCount: 8,
       timeLeft: '2 घंटे',
       location: 'चांदनी चौक',
+      vendorName: 'मोहन सब्जी भंडार',
       status: 'forming'
     },
     {
@@ -70,6 +72,7 @@ export const GroupOrdersList = ({ language, onJoinOrder, onStartOrder }: GroupOr
       vendorCount: 12,
       timeLeft: '1 घंटा',
       location: 'करोल बाग',
+      vendorName: 'गुप्ता होलसेल मार्केट',
       status: 'confirmed'
     },
     {
@@ -79,6 +82,7 @@ export const GroupOrdersList = ({ language, onJoinOrder, onStartOrder }: GroupOr
       vendorCount: 15,
       timeLeft: '30 मिनट',
       location: 'लाजपत नगर',
+      vendorName: 'शर्मा किराना स्टोर',
       status: 'confirmed'
     }
   ];
@@ -130,6 +134,10 @@ export const GroupOrdersList = ({ language, onJoinOrder, onStartOrder }: GroupOr
                     <span className="font-semibold text-lg">
                       {order.items.join(', ')}
                     </span>
+                  </div>
+                  
+                  <div className="text-sm font-medium text-secondary mb-1">
+                    {order.vendorName}
                   </div>
                   
                   <div className="flex items-center text-muted-foreground text-sm mb-2">

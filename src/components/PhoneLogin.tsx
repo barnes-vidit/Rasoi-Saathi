@@ -120,8 +120,8 @@ export const PhoneLogin = ({
                 </div>
               </div>
               
-              <div className="text-center">
-                <Phone className="w-16 h-16 text-primary mx-auto mb-4 p-3 bg-primary-soft rounded-full" />
+              <div className="text-center mb-2">
+                <Phone className="w-12 h-12 text-primary mx-auto p-2 bg-primary-soft rounded-full" />
               </div>
               
               <div className="space-y-2">
