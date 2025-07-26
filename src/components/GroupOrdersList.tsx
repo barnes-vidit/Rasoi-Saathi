@@ -132,12 +132,8 @@ export const GroupOrdersList = ({ language, onJoinOrder, onStartOrder }: GroupOr
                   <div className="flex items-center mb-2">
                     <ShoppingCart className="w-5 h-5 text-primary mr-2" />
                     <span className="font-semibold text-lg">
-                      {order.items.join(', ')}
+                      {order.vendorName}
                     </span>
-                  </div>
-                  
-                  <div className="text-sm font-medium text-secondary mb-1">
-                    {order.vendorName}
                   </div>
                   
                   <div className="flex items-center text-muted-foreground text-sm mb-2">
