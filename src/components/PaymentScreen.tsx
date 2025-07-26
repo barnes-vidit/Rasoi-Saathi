@@ -2,17 +2,21 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, CreditCard, Smartphone, CheckCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface PaymentScreenProps {
   language: 'hi' | 'en';
   totalAmount: number;
   onBack: () => void;
   onPaymentSuccess: () => void;
+  vendorOrderIds?: string[];
 }
 
-export const PaymentScreen = ({ language, totalAmount, onBack, onPaymentSuccess }: PaymentScreenProps) => {
+export const PaymentScreen = ({ language, totalAmount, onBack, onPaymentSuccess, vendorOrderIds }: PaymentScreenProps) => {
   const [selectedMethod, setSelectedMethod] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
 
   const text = {
     hi: {
@@ -75,11 +79,34 @@ export const PaymentScreen = ({ language, totalAmount, onBack, onPaymentSuccess 
     
     setIsProcessing(true);
     
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false);
+    try {
+      // Call the simulate-payment Edge function
+      const { data, error } = await supabase.functions.invoke('simulate-payment', {
+        body: {
+          vendorOrderIds: vendorOrderIds || [],
+          amount: totalAmount,
+          paymentMethod: selectedMethod
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Payment Successful",
+        description: "Your payment has been processed successfully!",
+      });
+
       onPaymentSuccess();
-    }, 2000);
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      toast({
+        title: "Payment Failed",
+        description: error.message || "Payment processing failed. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const orderId = `ROS${Date.now()}`;

@@ -64,7 +64,7 @@ export const GroupOrdersListIntegrated = ({
         .select('id')
         .eq('group_order_id', groupOrderId)
         .eq('vendor_id', userProfile.id)
-        .single();
+        .maybeSingle();
 
       if (existingOrder) {
         toast({
@@ -75,9 +75,29 @@ export const GroupOrdersListIntegrated = ({
         return;
       }
 
+      // Call the join-group-order Edge function
+      const { data, error } = await supabase.functions.invoke('join-group-order', {
+        body: {
+          groupOrderId,
+          items: [] // Will be populated when user adds items
+        }
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Joined Successfully",
+        description: "You have joined the group order. Now select your items!",
+      });
+
       onJoinOrder(groupOrderId);
-    } catch (error) {
-      console.error('Error checking join status:', error);
+    } catch (error: any) {
+      console.error('Error joining order:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to join group order",
+        variant: "destructive",
+      });
     } finally {
       setJoining(null);
     }

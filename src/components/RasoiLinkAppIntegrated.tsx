@@ -34,7 +34,7 @@ export const RasoiLinkAppIntegrated = () => {
   const [totalAmount, setTotalAmount] = useState(0);
   const [userType, setUserType] = useState<'vendor' | 'supplier'>('vendor');
   const [selectedGroupOrder, setSelectedGroupOrder] = useState<string | null>(null);
-  const [selectedVendor, setSelectedVendor] = useState<string | null>(null);
+  const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
 
   const { user, userProfile, userType: authUserType, loading } = useAuth();
 
@@ -72,8 +72,8 @@ export const RasoiLinkAppIntegrated = () => {
     setCurrentScreen('vendors');
   };
 
-  const handleVendorSelect = (vendorId: string) => {
-    setSelectedVendor(vendorId);
+  const handleSupplierSelect = (supplierId: string) => {
+    setSelectedSupplier(supplierId);
     setCurrentScreen('items');
   };
 
@@ -159,7 +159,7 @@ export const RasoiLinkAppIntegrated = () => {
           <VendorSelection 
             language={language}
             onBack={() => setCurrentScreen('orders')}
-            onVendorSelect={handleVendorSelect}
+            onVendorSelect={handleSupplierSelect}
           />
         );
       
@@ -167,8 +167,9 @@ export const RasoiLinkAppIntegrated = () => {
         return (
           <ItemSelection 
             language={language}
-            onBack={() => setCurrentScreen(selectedVendor ? 'vendors' : 'orders')}
+            onBack={() => setCurrentScreen(selectedSupplier ? 'vendors' : 'orders')}
             onAddToCart={handleAddToCart}
+            supplierId={selectedSupplier || undefined}
           />
         );
       

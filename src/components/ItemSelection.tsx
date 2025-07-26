@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Plus, Minus, ShoppingCart } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import potatoImg from "@/assets/potato.jpg";
 import onionImg from "@/assets/onion.jpg";
 import tomatoImg from "@/assets/tomato.jpg";
@@ -11,20 +13,24 @@ import oilImg from "@/assets/oil.jpg";
 interface Item {
   id: string;
   name: string;
-  nameHi: string;
-  image: string;
-  pricePerKg: number;
-  unit: string;
+  price_per_kg: number;
+  available_qty: number;
+  image_url?: string;
+  supplier_id: string;
 }
 
 interface ItemSelectionProps {
   language: 'hi' | 'en';
   onBack: () => void;
   onAddToCart: (items: any[]) => void;
+  supplierId?: string;
 }
 
-export const ItemSelection = ({ language, onBack, onAddToCart }: ItemSelectionProps) => {
+export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: ItemSelectionProps) => {
   const [cart, setCart] = useState<Record<string, number>>({});
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   const text = {
     hi: {
@@ -49,40 +55,45 @@ export const ItemSelection = ({ language, onBack, onAddToCart }: ItemSelectionPr
 
   const t = text[language];
 
-  const items: Item[] = [
-    {
-      id: '1',
-      name: 'Potato',
-      nameHi: 'आलू',
-      image: potatoImg,
-      pricePerKg: 25,
-      unit: 'kg'
-    },
-    {
-      id: '2',
-      name: 'Onion',
-      nameHi: 'प्याज',
-      image: onionImg,
-      pricePerKg: 30,
-      unit: 'kg'
-    },
-    {
-      id: '3',
-      name: 'Tomato',
-      nameHi: 'टमाटर',
-      image: tomatoImg,
-      pricePerKg: 40,
-      unit: 'kg'
-    },
-    {
-      id: '4',
-      name: 'Cooking Oil',
-      nameHi: 'खाना पकाने का तेल',
-      image: oilImg,
-      pricePerKg: 120,
-      unit: 'liter'
+  useEffect(() => {
+    fetchItems();
+  }, [supplierId]);
+
+  const fetchItems = async () => {
+    try {
+      let query = supabase.from('items').select('*');
+      
+      if (supplierId) {
+        query = query.eq('supplier_id', supplierId);
+      }
+      
+      const { data, error } = await query.order('name');
+
+      if (error) throw error;
+      setItems(data || []);
+    } catch (error) {
+      console.error('Error fetching items:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch items",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const getItemImage = (item: Item) => {
+    if (item.image_url) return item.image_url;
+    
+    // Fallback images based on name
+    if (item.name.toLowerCase().includes('potato') || item.name.includes('आलू')) return potatoImg;
+    if (item.name.toLowerCase().includes('onion') || item.name.includes('प्याज')) return onionImg;
+    if (item.name.toLowerCase().includes('tomato') || item.name.includes('टमाटर')) return tomatoImg;
+    if (item.name.toLowerCase().includes('oil') || item.name.includes('तेल')) return oilImg;
+    
+    return potatoImg; // Default fallback
+  };
 
   const updateQuantity = (itemId: string, change: number) => {
     setCart(prev => {
@@ -107,17 +118,29 @@ export const ItemSelection = ({ language, onBack, onAddToCart }: ItemSelectionPr
   const getTotalPrice = () => {
     return Object.entries(cart).reduce((sum, [itemId, qty]) => {
       const item = items.find(i => i.id === itemId);
-      return sum + (item ? item.pricePerKg * qty : 0);
+      return sum + (item ? item.price_per_kg * qty : 0);
     }, 0);
   };
 
   const handleAddToCart = () => {
     const cartItems = Object.entries(cart).map(([itemId, quantity]) => {
       const item = items.find(i => i.id === itemId);
-      return { ...item, quantity };
+      return { 
+        ...item, 
+        quantity,
+        pricePerKg: item?.price_per_kg || 0 // For compatibility
+      };
     });
     onAddToCart(cartItems);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-fresh flex items-center justify-center">
+        <div className="text-lg">Loading items...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-fresh">
@@ -146,33 +169,41 @@ export const ItemSelection = ({ language, onBack, onAddToCart }: ItemSelectionPr
 
       {/* Items Grid */}
       <div className="p-4">
-        <div className="grid grid-cols-2 gap-4 mb-20">
-          {items.map((item) => {
-            const quantity = cart[item.id] || 0;
-            const displayName = language === 'hi' ? item.nameHi : item.name;
-            const unitText = item.unit === 'kg' ? t.perKg : t.perLiter;
+        {items.length === 0 ? (
+          <div className="text-center py-12">
+            <ShoppingCart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground mb-6">No items available</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 mb-20">
+            {items.map((item) => {
+              const quantity = cart[item.id] || 0;
+              const displayName = item.name;
 
-            return (
-              <Card key={item.id} className="p-3 shadow-card">
-                <div className="aspect-square mb-3 rounded-lg overflow-hidden bg-muted">
-                  <img 
-                    src={item.image} 
-                    alt={displayName}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                
-                <div className="text-center mb-3">
-                  <h3 className="font-semibold text-lg mb-1">
-                    {displayName}
-                  </h3>
-                  <div className="text-primary font-bold text-xl">
-                    ₹{item.pricePerKg}
+              return (
+                <Card key={item.id} className="p-3 shadow-card">
+                  <div className="aspect-square mb-3 rounded-lg overflow-hidden bg-muted">
+                    <img 
+                      src={getItemImage(item)} 
+                      alt={displayName}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {unitText}
+                  
+                  <div className="text-center mb-3">
+                    <h3 className="font-semibold text-lg mb-1">
+                      {displayName}
+                    </h3>
+                    <div className="text-primary font-bold text-xl">
+                      ₹{item.price_per_kg}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {t.perKg}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Available: {item.available_qty}kg
+                    </div>
                   </div>
-                </div>
 
                 {quantity === 0 ? (
                   <Button 
@@ -196,12 +227,12 @@ export const ItemSelection = ({ language, onBack, onAddToCart }: ItemSelectionPr
                         <Minus className="w-4 h-4" />
                       </Button>
                       
-                      <div className="text-center">
-                        <div className="font-bold text-lg">{quantity}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {item.unit}
-                        </div>
-                      </div>
+                       <div className="text-center">
+                         <div className="font-bold text-lg">{quantity}</div>
+                         <div className="text-xs text-muted-foreground">
+                           kg
+                         </div>
+                       </div>
                       
                       <Button 
                         variant="ghost"
@@ -214,15 +245,16 @@ export const ItemSelection = ({ language, onBack, onAddToCart }: ItemSelectionPr
                     </div>
                     
                     <div className="text-center text-sm text-primary font-semibold">
-                      ₹{item.pricePerKg * quantity}
+                      ₹{item.price_per_kg * quantity}
                     </div>
                   </div>
                 )}
-              </Card>
-            );
-          })}
-        </div>
-      </div>
+                 </Card>
+               );
+             })}
+           </div>
+         )}
+       </div>
 
       {/* Floating Cart Button */}
       {getTotalItems() > 0 && (

@@ -10,6 +10,9 @@ import {
   Upload,
   Save
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 
 interface AddInventoryProps {
   language: 'hi' | 'en';
@@ -23,6 +26,10 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
   const [quantity, setQuantity] = useState('');
   const [isAvailable, setIsAvailable] = useState(true);
   const [hasImage, setHasImage] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const { userProfile } = useAuth();
+  const { toast } = useToast();
 
   const text = {
     hi: {
@@ -56,12 +63,89 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
   const t = text[language];
 
   const handleImageUpload = () => {
-    setHasImage(true);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) {
+        setSelectedImage(file);
+        setHasImage(true);
+      }
+    };
+    input.click();
   };
 
-  const handleSave = () => {
-    if (itemName && pricePerKg && quantity) {
+  const handleSave = async () => {
+    if (!userProfile?.id) {
+      toast({
+        title: "Error",
+        description: "User profile not found",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!itemName || !pricePerKg || !quantity) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      let imageUrl = null;
+
+      // Upload image if present
+      if (selectedImage) {
+        const fileExt = selectedImage.name.split('.').pop();
+        const fileName = `items/${userProfile.id}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('delivery-proofs')
+          .upload(fileName, selectedImage);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('delivery-proofs')
+          .getPublicUrl(fileName);
+        
+        imageUrl = publicUrl;
+      }
+
+      // Insert item into database
+      const { error: insertError } = await supabase
+        .from('items')
+        .insert({
+          name: itemName.trim(),
+          price_per_kg: parseFloat(pricePerKg),
+          available_qty: isAvailable ? parseFloat(quantity) : 0,
+          supplier_id: userProfile.id,
+          image_url: imageUrl
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: "Success",
+        description: "Item added successfully!",
+      });
+
       onSave();
+    } catch (error: any) {
+      console.error('Error saving item:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save item",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -192,10 +276,19 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
           size="mobile"
           className="w-full"
           onClick={handleSave}
-          disabled={!itemName || !pricePerKg || !quantity}
+          disabled={!itemName || !pricePerKg || !quantity || isLoading}
         >
-          <Save className="w-6 h-6 mr-3" />
-          {t.saveItem}
+          {isLoading ? (
+            <>
+              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mr-3" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-6 h-6 mr-3" />
+              {t.saveItem}
+            </>
+          )}
         </Button>
       </div>
     </div>
