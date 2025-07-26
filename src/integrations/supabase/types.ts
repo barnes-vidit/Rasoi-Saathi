@@ -309,7 +309,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      close_expired_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_group_totals: {
+        Args: { group_order_id_param: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

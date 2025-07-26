@@ -1,1 +1,13 @@
 project_id = "gluviwmpwuluvkufblil"
+
+[functions.join-group-order]
+verify_jwt = true
+
+[functions.simulate-payment] 
+verify_jwt = true
+
+[functions.update-order-status]
+verify_jwt = true
+
+[functions.create-group-order]
+verify_jwt = true
