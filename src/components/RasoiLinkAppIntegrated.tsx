@@ -11,11 +11,16 @@ import { SupplierDashboard } from "./SupplierDashboard";
 import { AddInventory } from "./AddInventory";
 import { IncomingGroupOrders } from "./IncomingGroupOrders";
 import { DeliveryStatusPanel } from "./DeliveryStatusPanel";
+import { ZoneSelection } from "./ZoneSelection";
+import { OrderStatusIntegrated } from "./OrderStatusIntegrated";
+import { SupplierDispatchPanel } from "./SupplierDispatchPanel";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 type AppScreen = 
   | 'language' 
   | 'login' 
+  | 'zone-select'
   | 'orders' 
   | 'vendors'
   | 'items' 
@@ -25,7 +30,8 @@ type AppScreen =
   | 'supplier-dashboard'
   | 'add-inventory'
   | 'incoming-orders'
-  | 'delivery-panel';
+  | 'delivery-panel'
+  | 'dispatch-panel';
 
 export const RasoiLinkAppIntegrated = () => {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('language');
@@ -44,7 +50,7 @@ export const RasoiLinkAppIntegrated = () => {
     
     if (user && userProfile && authUserType) {
       if (authUserType === 'vendor') {
-        setCurrentScreen('orders');
+        setCurrentScreen('zone-select');
       } else {
         setCurrentScreen('supplier-dashboard');
       }
@@ -59,7 +65,25 @@ export const RasoiLinkAppIntegrated = () => {
   };
 
   const handleLoginSuccess = () => {
-    // Navigation is handled by useEffect above
+    console.log('Login successful, userProfile:', userProfile);
+    if (userProfile?.userType === 'supplier') {
+      setCurrentScreen('supplier-dashboard');
+    } else {
+      setCurrentScreen('zone-select');
+    }
+  };
+
+  const handleZoneSelect = (zone: string) => {
+    // Update vendor zone in database
+    if (userProfile?.id) {
+      supabase
+        .from('vendors')
+        .update({ zone })
+        .eq('id', userProfile.id)
+        .then(() => {
+          setCurrentScreen('orders');
+        });
+    }
   };
 
   const handleJoinOrder = (orderId: string) => {
@@ -108,7 +132,7 @@ export const RasoiLinkAppIntegrated = () => {
   };
 
   const handleDeliveryPanel = () => {
-    setCurrentScreen('delivery-panel');
+    setCurrentScreen('dispatch-panel');
   };
 
   const handleAcceptOrder = (orderId: string) => {
@@ -145,14 +169,22 @@ export const RasoiLinkAppIntegrated = () => {
           />
         );
       
-      case 'orders':
-        return (
-          <GroupOrdersListIntegrated 
-            language={language}
-            onJoinOrder={handleJoinOrder}
-            onStartOrder={handleStartOrder}
-          />
-        );
+        case 'zone-select':
+          return (
+            <ZoneSelection
+              language={language}
+              onZoneSelect={handleZoneSelect}
+              onBack={() => setCurrentScreen('language')}
+            />
+          );
+        case 'orders':
+          return (
+            <GroupOrdersListIntegrated
+              language={language}
+              onJoinOrder={handleJoinOrder}
+              onStartOrder={handleStartOrder}
+            />
+          );
       
       case 'vendors':
         return (
@@ -195,9 +227,9 @@ export const RasoiLinkAppIntegrated = () => {
       
       case 'status':
         return (
-          <OrderStatus 
+          <OrderStatusIntegrated 
             language={language}
-            onBackToOrders={handleBackToOrders}
+            onBack={handleBackToOrders}
           />
         );
 
@@ -232,6 +264,14 @@ export const RasoiLinkAppIntegrated = () => {
       case 'delivery-panel':
         return (
           <DeliveryStatusPanel 
+            language={language}
+            onBack={() => setCurrentScreen('supplier-dashboard')}
+          />
+        );
+
+      case 'dispatch-panel':
+        return (
+          <SupplierDispatchPanel 
             language={language}
             onBack={() => setCurrentScreen('supplier-dashboard')}
           />

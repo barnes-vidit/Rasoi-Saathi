@@ -237,15 +237,25 @@ export const GroupOrdersListIntegrated = ({
             ))}
 
             {/* Start New Order Button */}
-            <Button 
-              variant="outline"
-              size="mobile"
-              onClick={onStartOrder}
-              className="w-full"
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              {t.startNew}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline"
+                size="mobile"
+                onClick={onStartOrder}
+                className="flex-1"
+              >
+                <Plus className="w-5 h-5 mr-2" />
+                {t.startNew}
+              </Button>
+              <Button 
+                variant="outline"
+                size="mobile"
+                onClick={() => window.location.href = '/?screen=status'}
+                className="flex-1"
+              >
+                {language === 'hi' ? 'मेरे ऑर्डर' : 'My Orders'}
+              </Button>
+            </div>
           </div>
         )}
       </div>
