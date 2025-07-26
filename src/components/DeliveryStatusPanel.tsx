@@ -153,19 +153,21 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">
                 <div className="flex items-center mb-2">
-                  <MapPin className="w-5 h-5 text-primary mr-2" />
-                  <span className="font-semibold text-lg">
+                  <MapPin className="w-5 h-5 text-primary mr-2 flex-shrink-0" />
+                  <span className="font-semibold text-lg truncate">
                     {order.area}
                   </span>
                 </div>
                 
-                <div className="text-sm text-muted-foreground mb-2">
+                <div className="text-sm text-muted-foreground mb-2 line-clamp-2">
                   {order.items.join(', ')}
                 </div>
                 
                 <div className="flex items-center text-sm text-muted-foreground">
-                  <Users className="w-4 h-4 mr-1" />
-                  {order.vendorCount} {t.vendors} • {order.deliveryTime}
+                  <Users className="w-4 h-4 mr-1 flex-shrink-0" />
+                  <span className="truncate">
+                    {order.vendorCount} {t.vendors} • {order.deliveryTime}
+                  </span>
                 </div>
               </div>
               
@@ -181,8 +183,8 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
                   className="w-full"
                   onClick={() => handleStatusUpdate(order.id, 'dispatched')}
                 >
-                  <Truck className="w-5 h-5 mr-2" />
-                  {t.markDispatched}
+                  <Truck className="w-5 h-5 mr-2 flex-shrink-0" />
+                  <span className="truncate">{t.markDispatched}</span>
                 </Button>
               )}
               
@@ -193,8 +195,8 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
                   className="w-full"
                   onClick={() => handleStatusUpdate(order.id, 'delivered')}
                 >
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  {t.markDelivered}
+                  <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                  <span className="truncate">{t.markDelivered}</span>
                 </Button>
               )}
 
@@ -202,20 +204,20 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
                 <div className="grid grid-cols-2 gap-3">
                   <Button 
                     variant="outline"
-                    className="h-12"
+                    className="h-12 text-xs px-2"
                     onClick={() => setProofImage(!proofImage)}
                   >
-                    <Camera className="w-5 h-5 mr-2" />
-                    {t.uploadProof}
+                    <Camera className="w-4 h-4 mr-1 flex-shrink-0" />
+                    <span className="truncate">{t.uploadProof}</span>
                   </Button>
                   
                   <Button 
                     variant="outline"
-                    className="h-12"
+                    className="h-12 text-xs px-2"
                     onClick={() => setVoiceNote(!voiceNote)}
                   >
-                    <Mic className="w-5 h-5 mr-2" />
-                    {t.voiceNote}
+                    <Mic className="w-4 h-4 mr-1 flex-shrink-0" />
+                    <span className="truncate">{t.voiceNote}</span>
                   </Button>
                 </div>
               )}
@@ -244,8 +246,8 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
         {/* Notification Panel */}
         <Card className="p-4 shadow-card">
           <h3 className="font-semibold mb-4 flex items-center">
-            <Send className="w-5 h-5 mr-2 text-primary" />
-            {t.notifyVendors}
+            <Send className="w-5 h-5 mr-2 text-primary flex-shrink-0" />
+            <span className="truncate">{t.notifyVendors}</span>
           </h3>
           
           <div className="space-y-4">
