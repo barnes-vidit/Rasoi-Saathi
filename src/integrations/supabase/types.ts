@@ -14,7 +14,296 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      delivery_proofs: {
+        Row: {
+          created_at: string
+          file_url: string
+          group_order_id: string
+          id: string
+          supplier_id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          file_url: string
+          group_order_id: string
+          id?: string
+          supplier_id: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string
+          group_order_id?: string
+          id?: string
+          supplier_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_proofs_group_order_id_fkey"
+            columns: ["group_order_id"]
+            isOneToOne: false
+            referencedRelation: "group_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_proofs_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_order_items: {
+        Row: {
+          created_at: string
+          group_order_id: string
+          id: string
+          item_id: string
+          name: string
+          price_per_kg: number
+          total_qty: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          group_order_id: string
+          id?: string
+          item_id: string
+          name: string
+          price_per_kg: number
+          total_qty?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          group_order_id?: string
+          id?: string
+          item_id?: string
+          name?: string
+          price_per_kg?: number
+          total_qty?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_order_items_group_order_id_fkey"
+            columns: ["group_order_id"]
+            isOneToOne: false
+            referencedRelation: "group_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_order_items_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_orders: {
+        Row: {
+          close_at: string
+          created_at: string
+          id: string
+          status: string
+          supplier_id: string
+          updated_at: string
+          zone: string
+        }
+        Insert: {
+          close_at?: string
+          created_at?: string
+          id?: string
+          status?: string
+          supplier_id: string
+          updated_at?: string
+          zone: string
+        }
+        Update: {
+          close_at?: string
+          created_at?: string
+          id?: string
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+          zone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_orders_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      items: {
+        Row: {
+          available_qty: number | null
+          created_at: string
+          id: string
+          image_url: string | null
+          name: string
+          price_per_kg: number
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          available_qty?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name: string
+          price_per_kg: number
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          available_qty?: number | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          name?: string
+          price_per_kg?: number
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          created_at: string
+          delivery_zones: string[]
+          id: string
+          name: string
+          phone: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delivery_zones?: string[]
+          id?: string
+          name: string
+          phone: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delivery_zones?: string[]
+          id?: string
+          name?: string
+          phone?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      vendor_orders: {
+        Row: {
+          created_at: string
+          group_order_id: string
+          id: string
+          item_id: string
+          paid: boolean | null
+          payment_id: string | null
+          quantity: number
+          updated_at: string
+          vendor_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_order_id: string
+          id?: string
+          item_id: string
+          paid?: boolean | null
+          payment_id?: string | null
+          quantity: number
+          updated_at?: string
+          vendor_id: string
+        }
+        Update: {
+          created_at?: string
+          group_order_id?: string
+          id?: string
+          item_id?: string
+          paid?: boolean | null
+          payment_id?: string | null
+          quantity?: number
+          updated_at?: string
+          vendor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_orders_group_order_id_fkey"
+            columns: ["group_order_id"]
+            isOneToOne: false
+            referencedRelation: "group_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_orders_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_orders_vendor_id_fkey"
+            columns: ["vendor_id"]
+            isOneToOne: false
+            referencedRelation: "vendors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vendors: {
+        Row: {
+          created_at: string
+          id: string
+          language: string | null
+          name: string
+          phone: string
+          updated_at: string
+          user_id: string | null
+          zone: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          language?: string | null
+          name: string
+          phone: string
+          updated_at?: string
+          user_id?: string | null
+          zone: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          language?: string | null
+          name?: string
+          phone?: string
+          updated_at?: string
+          user_id?: string | null
+          zone?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
