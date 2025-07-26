@@ -309,6 +309,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_close_expired_group_orders: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       auto_close_expired_orders: {
         Args: Record<PropertyKey, never>
         Returns: undefined
