@@ -60,9 +60,6 @@ export const IncomingGroupOrders = ({
       pending: "Pending"
     }
   };
-
-  const t = text[language];
-
   const mockOrders: GroupOrder[] = [
     {
       id: '1',
@@ -175,7 +172,7 @@ export const IncomingGroupOrders = ({
     <div className="min-h-screen bg-gradient-fresh">
       {/* Header */}
       <div className="bg-white shadow-card p-4 flex items-center">
-        <Button 
+        <Button
           variant="ghost" 
           size="icon" 
           onClick={onBack}
@@ -224,8 +221,8 @@ export const IncomingGroupOrders = ({
         ) : (
           mockOrders
             .filter(order => selectedZone === 'all' || order.area === selectedZone)
-            .map((order) => (
-          <Card key={order.id} className="p-4 shadow-card">
+            .map(order => (
+              <Card key={order.id} className="p-4 shadow-card">
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">
                 <div className="flex items-center mb-2">
@@ -282,8 +279,9 @@ export const IncomingGroupOrders = ({
             <div className="mt-4">
               {getActionButton(order)}
             </div>
-          </Card>
-        ))}
+              </Card>
+            ))
+          )}
       </div>
     </div>
   );
