@@ -170,7 +170,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { error: vendorError } = await supabase
           .from('vendors')
           .insert([{
-            ...profileData,
+            user_id: user.id,
+            name: data.name,
+            phone: data.phone,
             zone: data.zone,
             language: data.language || 'hi'
           }]);
@@ -179,7 +181,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const { error: supplierError } = await supabase
           .from('suppliers')
           .insert([{
-            ...profileData,
+            user_id: user.id,
+            name: data.name,
+            phone: data.phone,
             delivery_zones: data.delivery_zones || []
           }]);
         error = supplierError;
