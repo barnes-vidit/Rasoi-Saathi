@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CreditCard, IndianRupee, CheckCircle, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, CreditCard, IndianRupee, CheckCircle, XCircle, Clock, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -167,6 +167,27 @@ export const PaymentIntegration = ({
         return null;
     }
   };
+
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8">
+        <ShoppingCart className="w-16 h-16 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-medium mb-2">{language === 'hi' ? 'कोई आइटम नहीं मिला' : 'No items in cart'}</h3>
+      </div>
+    );
+  }
+
+  if (paymentStatus === 'processing') {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <svg className="animate-spin h-8 w-8 text-primary" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+        </svg>
+        <span className="ml-4 text-lg">{t.processing}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-fresh">

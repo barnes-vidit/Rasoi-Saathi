@@ -52,6 +52,15 @@ export const CreateGroupOrder = ({ language, onBack, onSuccess }: CreateGroupOrd
     { id: 'Zone F', name: 'द्वारका / Dwarka' },
   ];
 
+  if (zones.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8">
+        <Package className="w-16 h-16 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-medium mb-2">{language === 'hi' ? 'कोई ज़ोन नहीं मिला' : 'No zones found'}</h3>
+      </div>
+    );
+  }
+
   const handleCreateOrder = async () => {
     if (!selectedZone || !userProfile?.id) return;
 
@@ -117,7 +126,15 @@ export const CreateGroupOrder = ({ language, onBack, onSuccess }: CreateGroupOrd
   };
 
   return (
-    <div className="min-h-screen bg-gradient-fresh">
+    <div className="min-h-screen bg-gradient-fresh flex flex-col p-4 relative">
+      {loading && (
+        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <svg className="animate-spin h-10 w-10 text-primary" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-white shadow-card p-4">
         <div className="flex items-center mb-4">

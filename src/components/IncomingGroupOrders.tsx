@@ -10,7 +10,8 @@ import {
   CheckCircle,
   Truck
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface GroupOrder {
   id: string;
@@ -106,6 +107,13 @@ export const IncomingGroupOrders = ({
 
   const [selectedZone, setSelectedZone] = useState<string>('all');
   const allZones = Array.from(new Set(mockOrders.map(order => order.area)));
+  const [loading, setLoading] = useState(false);
+
+  // Add loading state for data fetch (mocked for now)
+  useEffect(() => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 500); // Simulate loading
+  }, [selectedZone]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -202,9 +210,21 @@ export const IncomingGroupOrders = ({
 
       {/* Content */}
       <div className="p-4 space-y-4">
-        {mockOrders
-          .filter(order => selectedZone === 'all' || order.area === selectedZone)
-          .map((order) => (
+        {loading ? (
+          <div className="flex flex-col gap-4">
+            {[...Array(3)].map((_, i) => (
+              <Skeleton key={i} className="h-32 w-full" />
+            ))}
+          </div>
+        ) : mockOrders.filter(order => selectedZone === 'all' || order.area === selectedZone).length === 0 ? (
+          <Card className="p-8 text-center">
+            <Package className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">{language === 'hi' ? 'कोई ऑर्डर नहीं मिला' : 'No orders found'}</h3>
+          </Card>
+        ) : (
+          mockOrders
+            .filter(order => selectedZone === 'all' || order.area === selectedZone)
+            .map((order) => (
           <Card key={order.id} className="p-4 shadow-card">
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">

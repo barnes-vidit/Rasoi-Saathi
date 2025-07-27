@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useGroupOrders } from "@/hooks/useRealtime";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface GroupOrdersListIntegratedProps {
   language: 'hi' | 'en';
@@ -53,28 +54,35 @@ export const GroupOrdersListIntegrated = ({
 
   const t = text[language];
 
-  const handleJoinOrder = async (groupOrderId: string) => {
+  const handleJoinOrder = async (groupOrderId: string, orderStatus?: string) => {
     if (!userProfile?.id) return;
-    
+    if (joining) return; // Prevent duplicate join attempts
+    if (orderStatus !== 'forming') {
+      toast({
+        title: 'Cannot Join',
+        description: 'This group order is no longer open for joining.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setJoining(groupOrderId);
     try {
       // Check if already joined
-      const { data: existingOrder } = await supabase
+      const { data: existingOrder, error: checkError } = await supabase
         .from('vendor_orders')
         .select('id')
         .eq('group_order_id', groupOrderId)
         .eq('vendor_id', userProfile.id)
         .maybeSingle();
-
+      if (checkError) throw checkError;
       if (existingOrder) {
         toast({
-          title: "Already Joined",
-          description: "You have already joined this group order",
-          variant: "destructive",
+          title: 'Already Joined',
+          description: 'You have already joined this group order',
+          variant: 'destructive',
         });
         return;
       }
-
       // Call the join-group-order Edge function
       const { data, error } = await supabase.functions.invoke('join-group-order', {
         body: {
@@ -82,21 +90,18 @@ export const GroupOrdersListIntegrated = ({
           items: [] // Will be populated when user adds items
         }
       });
-
       if (error) throw error;
-
       toast({
-        title: "Joined Successfully",
-        description: "You have joined the group order. Now select your items!",
+        title: 'Joined Successfully',
+        description: 'You have joined the group order. Now select your items!',
       });
-
       onJoinOrder(groupOrderId);
     } catch (error: any) {
       console.error('Error joining order:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to join group order",
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to join group order. Please check your connection and try again.',
+        variant: 'destructive',
       });
     } finally {
       setJoining(null);
@@ -130,8 +135,10 @@ export const GroupOrdersListIntegrated = ({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-fresh flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen bg-gradient-fresh flex flex-col p-4">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full mb-4" />
+        ))}
       </div>
     );
   }
@@ -204,7 +211,6 @@ export const GroupOrdersListIntegrated = ({
                     </div>
                   </div>
                 </div>
-
                 {/* Items Preview */}
                 <div className="mb-4">
                   <div className="grid grid-cols-2 gap-2">
@@ -223,15 +229,16 @@ export const GroupOrdersListIntegrated = ({
                     </div>
                   )}
                 </div>
-
                 <Button
                   variant="mobile"
                   size="mobile"
                   className="w-full"
-                  onClick={() => handleJoinOrder(order.id)}
+                  onClick={() => handleJoinOrder(order.id, order.status)}
                   disabled={order.status !== 'forming' || joining === order.id}
                 >
-                  {joining === order.id ? "Joining..." : t.join}
+                  {joining === order.id ? (
+                    <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Joining...</span>
+                  ) : t.join}
                 </Button>
               </Card>
             ))}

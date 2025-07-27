@@ -114,13 +114,13 @@ export const ZoneSelection = ({ language, onBack, onZoneSelect, currentZone }: Z
         <div className="sticky bottom-4 pt-4">
           <Button 
             variant="mobile"
-            size="mobile"
-            className="w-full"
+            className="w-full mt-6"
             onClick={handleConfirm}
-            disabled={!selectedZone}
+            disabled={selectedZone === '' || loading}
           >
-            <CheckCircle className="w-5 h-5 mr-2" />
-            {t.confirm}
+            {loading ? (
+              <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Confirming...</span>
+            ) : t.confirm}
           </Button>
         </div>
       </div>

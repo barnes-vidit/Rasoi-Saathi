@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +33,12 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
   const [proofImage, setProofImage] = useState(false);
   const [voiceNote, setVoiceNote] = useState(false);
   const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 500); // Simulate loading
+  }, []);
 
   const text = {
     hi: {
@@ -148,100 +154,128 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
 
       {/* Content */}
       <div className="p-4 space-y-4">
-        {mockOrders.map((order) => (
-          <Card key={order.id} className="p-4 shadow-card">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1">
-                <div className="flex items-center mb-2">
-                  <MapPin className="w-5 h-5 text-primary mr-2 flex-shrink-0" />
-                  <span className="font-semibold text-lg truncate">
-                    {order.area}
-                  </span>
-                </div>
-                
-                <div className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                  {order.items.join(', ')}
-                </div>
-                
-                <div className="flex items-center text-sm text-muted-foreground">
-                  <Users className="w-4 h-4 mr-1 flex-shrink-0" />
-                  <span className="truncate">
-                    {order.vendorCount} {t.vendors} • {order.deliveryTime}
-                  </span>
-                </div>
-              </div>
-              
-              {getStatusBadge(order.status)}
-            </div>
-
-            {/* Action Buttons based on status */}
-            <div className="space-y-3">
-              {order.status === 'preparing' && (
-                <Button 
-                  variant="warning"
-                  size="mobile"
-                  className="w-full"
-                  onClick={() => handleStatusUpdate(order.id, 'dispatched')}
-                >
-                  <Truck className="w-5 h-5 mr-2 flex-shrink-0" />
-                  <span className="truncate">{t.markDispatched}</span>
-                </Button>
-              )}
-              
-              {order.status === 'dispatched' && (
-                <Button 
-                  variant="success"
-                  size="mobile"
-                  className="w-full"
-                  onClick={() => handleStatusUpdate(order.id, 'delivered')}
-                >
-                  <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0" />
-                  <span className="truncate">{t.markDelivered}</span>
-                </Button>
-              )}
-
-              {order.status !== 'delivered' && (
-                <div className="grid grid-cols-2 gap-3">
-                  <Button 
-                    variant="outline"
-                    className="h-12 text-xs px-2"
-                    onClick={() => setProofImage(!proofImage)}
-                  >
-                    <Camera className="w-4 h-4 mr-1 flex-shrink-0" />
-                    <span className="truncate">{t.uploadProof}</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline"
-                    className="h-12 text-xs px-2"
-                    onClick={() => setVoiceNote(!voiceNote)}
-                  >
-                    <Mic className="w-4 h-4 mr-1 flex-shrink-0" />
-                    <span className="truncate">{t.voiceNote}</span>
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Proof Upload Confirmation */}
-            {proofImage && selectedOrder === order.id && (
-              <div className="mt-3 p-3 bg-success/10 rounded-lg">
-                <p className="text-success text-sm font-medium">
-                  ✓ Proof image uploaded
-                </p>
-              </div>
-            )}
-
-            {/* Voice Note Confirmation */}
-            {voiceNote && selectedOrder === order.id && (
-              <div className="mt-3 p-3 bg-success/10 rounded-lg">
-                <p className="text-success text-sm font-medium">
-                  ✓ Voice note recorded
-                </p>
-              </div>
-            )}
+        {loading ? (
+          <div className="flex justify-center items-center min-h-[200px]">
+            <svg className="animate-spin h-8 w-8 text-primary" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+            </svg>
+          </div>
+        ) : mockOrders.length === 0 ? (
+          <Card className="p-8 text-center">
+            <Truck className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium mb-2">{language === 'hi' ? 'कोई डिलीवरी ऑर्डर नहीं मिला' : 'No delivery orders found'}</h3>
           </Card>
-        ))}
+        ) : (
+          mockOrders.map((order) => (
+            <Card key={order.id} className="p-4 shadow-card">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center mb-2">
+                    <MapPin className="w-5 h-5 text-primary mr-2 flex-shrink-0" />
+                    <span className="font-semibold text-lg truncate">
+                      {order.area}
+                    </span>
+                  </div>
+                  
+                  <div className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                    {order.items.join(', ')}
+                  </div>
+                  
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    <Users className="w-4 h-4 mr-1 flex-shrink-0" />
+                    <span className="truncate">
+                      {order.vendorCount} {t.vendors} • {order.deliveryTime}
+                    </span>
+                  </div>
+                </div>
+                
+                {getStatusBadge(order.status)}
+              </div>
+
+              {/* Action Buttons based on status */}
+              <div className="space-y-3">
+                {order.status === 'preparing' && (
+                  <Button 
+                    variant="warning"
+                    size="mobile"
+                    className="w-full"
+                    onClick={() => handleStatusUpdate(order.id, 'dispatched')}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Marking...</span>
+                    ) : (
+                      <>
+                        <Truck className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span className="truncate">{t.markDispatched}</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+                
+                {order.status === 'dispatched' && (
+                  <Button 
+                    variant="success"
+                    size="mobile"
+                    className="w-full"
+                    onClick={() => handleStatusUpdate(order.id, 'delivered')}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Marking...</span>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2 flex-shrink-0" />
+                        <span className="truncate">{t.markDelivered}</span>
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {order.status !== 'delivered' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      variant="outline"
+                      className="h-12 text-xs px-2"
+                      onClick={() => setProofImage(!proofImage)}
+                    >
+                      <Camera className="w-4 h-4 mr-1 flex-shrink-0" />
+                      <span className="truncate">{t.uploadProof}</span>
+                    </Button>
+                    
+                    <Button 
+                      variant="outline"
+                      className="h-12 text-xs px-2"
+                      onClick={() => setVoiceNote(!voiceNote)}
+                    >
+                      <Mic className="w-4 h-4 mr-1 flex-shrink-0" />
+                      <span className="truncate">{t.voiceNote}</span>
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Proof Upload Confirmation */}
+              {proofImage && selectedOrder === order.id && (
+                <div className="mt-3 p-3 bg-success/10 rounded-lg">
+                  <p className="text-success text-sm font-medium">
+                    ✓ Proof image uploaded
+                  </p>
+                </div>
+              )}
+
+              {/* Voice Note Confirmation */}
+              {voiceNote && selectedOrder === order.id && (
+                <div className="mt-3 p-3 bg-success/10 rounded-lg">
+                  <p className="text-success text-sm font-medium">
+                    ✓ Voice note recorded
+                  </p>
+                </div>
+              )}
+            </Card>
+          ))
+        )}
 
         {/* Notification Panel */}
         <Card className="p-4 shadow-card">
@@ -263,10 +297,16 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
               size="mobile"
               className="w-full"
               onClick={handleNotifyVendors}
-              disabled={!message.trim()}
+              disabled={loading}
             >
-              <Send className="w-5 h-5 mr-2" />
-              {t.notifyVendors}
+              {loading ? (
+                <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Notifying...</span>
+              ) : (
+                <>
+                  <Send className="w-5 h-5 mr-2" />
+                  {t.notifyVendors}
+                </>
+              )}
             </Button>
           </div>
         </Card>

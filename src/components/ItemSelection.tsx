@@ -136,8 +136,20 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-fresh flex items-center justify-center">
-        <div className="text-lg">Loading items...</div>
+      <div className="min-h-screen flex items-center justify-center">
+        <svg className="animate-spin h-8 w-8 text-primary" viewBox="0 0 24 24">
+          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+        </svg>
+      </div>
+    );
+  }
+
+  if (!loading && items.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8">
+        <ShoppingCart className="w-16 h-16 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-medium mb-2">{language === 'hi' ? 'कोई आइटम नहीं मिला' : 'No items found'}</h3>
       </div>
     );
   }
@@ -264,9 +276,12 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
             size="mobile"
             className="w-full relative"
             onClick={handleAddToCart}
+            disabled={loading || Object.keys(cart).length === 0}
           >
             <ShoppingCart className="w-6 h-6 mr-3" />
-            {t.addToCart}
+            {loading ? (
+              <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Adding...</span>
+            ) : t.addToCart}
             <Badge 
               variant="secondary" 
               className="absolute -top-2 -right-2 bg-warning text-warning-foreground"

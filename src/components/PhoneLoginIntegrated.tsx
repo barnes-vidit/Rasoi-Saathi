@@ -131,7 +131,15 @@ export const PhoneLoginIntegrated = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-fresh flex flex-col p-4">
+    <div className="min-h-screen bg-gradient-fresh flex flex-col p-4 relative">
+      {loading && (
+        <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <svg className="animate-spin h-10 w-10 text-primary" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+          </svg>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center mb-8 mt-4">
         <Button 
@@ -200,12 +208,13 @@ export const PhoneLoginIntegrated = ({
 
               <Button 
                 variant="mobile"
-                size="mobile"
-                className="w-full"
+                className="w-full mt-4"
                 onClick={handleSendOtp}
-                disabled={phone.length < 10 || loading}
+                disabled={loading || phone.length < 10}
               >
-                {loading ? "Sending..." : t.sendOtp}
+                {loading ? (
+                  <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Sending...</span>
+                ) : t.sendOtp}
               </Button>
 
               <div className="flex items-center justify-center text-sm text-muted-foreground">
@@ -246,12 +255,13 @@ export const PhoneLoginIntegrated = ({
 
               <Button 
                 variant="mobile"
-                size="mobile"
-                className="w-full"
+                className="w-full mt-4"
                 onClick={handleVerifyOtp}
-                disabled={otp.length !== 6 || loading}
+                disabled={loading || otp.length !== 6}
               >
-                {loading ? "Verifying..." : t.verify}
+                {loading ? (
+                  <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Verifying...</span>
+                ) : t.verify}
               </Button>
 
               <Button 
@@ -299,12 +309,13 @@ export const PhoneLoginIntegrated = ({
 
               <Button 
                 variant="mobile"
-                size="mobile"
-                className="w-full"
+                className="w-full mt-4"
                 onClick={handleCreateProfile}
-                disabled={!profileData.name || (userType === 'vendor' && !profileData.zone) || loading}
+                disabled={loading || !profileData.name || (userType === 'vendor' && !profileData.zone)}
               >
-                {loading ? "Creating..." : t.createProfile}
+                {loading ? (
+                  <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Saving...</span>
+                ) : t.createProfile}
               </Button>
             </div>
           )}

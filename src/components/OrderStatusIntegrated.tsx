@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, Clock, Truck, Package } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface OrderStatusIntegratedProps {
   language: 'hi' | 'en';
@@ -107,11 +108,10 @@ export const OrderStatusIntegrated: React.FC<OrderStatusIntegratedProps> = ({
 
   if (loading) {
     return (
-      <div className="p-4 flex items-center justify-center min-h-screen">
-        <svg className="animate-spin h-8 w-8 text-primary" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-        </svg>
+      <div className="min-h-screen bg-background pb-4 flex flex-col p-4">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton key={i} className="h-28 w-full mb-4" />
+        ))}
       </div>
     );
   }

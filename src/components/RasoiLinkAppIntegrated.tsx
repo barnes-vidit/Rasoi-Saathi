@@ -51,11 +51,35 @@ export const RasoiLinkAppIntegrated = () => {
   // Auto-navigate based on auth state
   useEffect(() => {
     if (loading) return;
-    
+
+    // If vendor and no zone in profile, try to restore from localStorage
+    if (user && userProfile && authUserType === 'vendor' && !userProfile.zone) {
+      const storedZone = localStorage.getItem('vendorZone');
+      if (storedZone) {
+        // Update profile in DB and in memory
+        (async () => {
+          try {
+            const { error } = await supabase
+              .from('vendors')
+              .update({ zone: storedZone })
+              .eq('id', userProfile.id);
+            if (!error) {
+              userProfile.zone = storedZone;
+              setCurrentScreen('orders');
+              return;
+            }
+          } catch (err) {
+            // fallback to zone-select
+          }
+        })();
+      } else {
+        setCurrentScreen('zone-select');
+        return;
+      }
+    }
+
     if (user && userProfile && authUserType) {
       if (authUserType === 'vendor') {
-        // If vendor doesn't have a zone yet, go to zone selection
-        // If vendor has a zone, go to orders
         if (!userProfile.zone) {
           setCurrentScreen('zone-select');
         } else {
@@ -84,23 +108,20 @@ export const RasoiLinkAppIntegrated = () => {
   };
 
   const handleZoneSelect = async (zone: string) => {
-    // Update vendor zone in database
+    // Update vendor zone in database and localStorage
     if (userProfile?.id) {
       try {
         const { error } = await supabase
           .from('vendors')
           .update({ zone })
           .eq('id', userProfile.id);
-        
         if (error) {
           console.error('Zone update error:', error);
-          // Still proceed to orders screen even if update fails
         }
-        
+        localStorage.setItem('vendorZone', zone);
         setCurrentScreen('orders');
       } catch (err) {
-        console.error('Zone selection error:', err);
-        // Proceed anyway
+        localStorage.setItem('vendorZone', zone);
         setCurrentScreen('orders');
       }
     }

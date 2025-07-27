@@ -8,6 +8,7 @@ import { ArrowLeft, Plus, Package, Upload, IndianRupee, Weight } from "lucide-re
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface InventoryManagementProps {
   language: 'hi' | 'en';
@@ -170,6 +171,16 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-fresh flex flex-col p-4">
+        {[...Array(3)].map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full mb-4" />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-fresh">
