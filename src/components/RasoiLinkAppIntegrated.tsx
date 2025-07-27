@@ -50,7 +50,13 @@ export const RasoiLinkAppIntegrated = () => {
     
     if (user && userProfile && authUserType) {
       if (authUserType === 'vendor') {
-        setCurrentScreen('zone-select');
+        // If vendor doesn't have a zone yet, go to zone selection
+        // If vendor has a zone, go to orders
+        if (!userProfile.zone) {
+          setCurrentScreen('zone-select');
+        } else {
+          setCurrentScreen('orders');
+        }
       } else {
         setCurrentScreen('supplier-dashboard');
       }
