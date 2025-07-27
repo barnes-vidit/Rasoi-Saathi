@@ -1,73 +1,118 @@
-# Welcome to your Lovable project
+# RasoiLink
 
-## Project info
+A mobile-first web app enabling Indian street food vendors to collaboratively place bulk raw-material orders, unlock wholesale prices, and receive shared delivery from local suppliers.
 
-**URL**: https://lovable.dev/projects/463dfa99-e663-4fc4-b27d-55166ace38a3
+## 🚀 Overview
 
-## How can I edit this code?
+**RasoiLink** is designed for street vendors who typically don't have access to tech-savvy tools. Our goal: make bulk raw-material purchasing seamless, intuitive, and affordable — with minimal tech knowledge required.
 
-There are several ways of editing your application.
+## 🧑‍🍳 Who is it for?
 
-**Use Lovable**
+* Indian street food vendors (especially in urban zones)
+* Local suppliers providing vegetables, grains, and cooking ingredients
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/463dfa99-e663-4fc4-b27d-55166ace38a3) and start prompting.
+## 🛠 Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+* **Frontend:** React / Next.js (mobile-first)
+* **Backend:** Supabase (DB, Auth, Storage, Edge Functions)
+* **Realtime:** Supabase Realtime Subscriptions
+* **Authentication:** Supabase Auth (Phone OTP)
+* **File Storage:** Supabase Storage
+* **Payment:** UPI (Mock or Razorpay/Paytm simulated)
 
-**Use your preferred IDE**
+## 📱 Core Features
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 👨‍🍳 Vendors
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+* Phone OTP Login
+* Auto-detect or select local zone
+* View/join ongoing group orders
+* Add items + quantities to group cart
+* View real-time cart totals and pricing
+* Pay via UPI and track status (forming → dispatched → delivered)
+* See order history
 
-Follow these steps:
+### 🏬 Suppliers
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+* Upload and manage item inventory
+* View active group orders matched to them
+* Track vendor-specific requests and totals
+* Mark orders as dispatched
+* Upload delivery proof (image/audio via Supabase Storage)
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 🔄 Realtime Behavior
 
-# Step 3: Install the necessary dependencies.
-npm i
+* Group cart auto-refreshes as vendors update quantities
+* Status changes (e.g., order closed/dispatched) reflected instantly
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+### 🔐 Security & Role Access
 
-**Edit a file directly in GitHub**
+* Supabase Row-Level Security (RLS)
+* Vendors can only access their own records
+* Suppliers can only view/manage their group orders and items
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## ⏱ Auto-Closure Logic
 
-**Use GitHub Codespaces**
+* Orders automatically close at defined time or when minimum vendor threshold is met
+* Vendors cannot join once closed
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 📁 Supabase DB Schema (Simplified)
 
-## What technologies are used for this project?
+* **vendors**
+* **suppliers**
+* **items** (supplier\_id FK)
+* **group\_orders** (zone, deadline, status)
+* **group\_order\_items** (aggregated qty + linked to item)
+* **vendor\_orders** (vendor\_id, group\_order\_id, paid, items)
+* **delivery\_proofs** (media uploads by supplier)
 
-This project is built with:
+## ✅ Dev Milestones
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### Phase 1: Planning ✅
 
-## How can I deploy this project?
+* Vision, personas, value prop
 
-Simply open [Lovable](https://lovable.dev/projects/463dfa99-e663-4fc4-b27d-55166ace38a3) and click on Share -> Publish.
+### Phase 2: DB Design ✅
 
-## Can I connect a custom domain to my Lovable project?
+* Supabase schema, security policies
 
-Yes, you can!
+### Phase 3: UI/UX ✅
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+* Mobile-first, intuitive, premium feel UI
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Phase 4 & 5: Backend Logic ✅
+
+* Supabase Edge Functions, RLS, and Storage configured
+
+### Phase 6: Integration & Testing ✅
+
+* Full vendor → supplier journey tested
+
+## 🧪 Testing & QA
+
+* Simulated with mock vendors and suppliers
+* Edge cases handled (e.g., vendor doesn't pay, group timeout)
+* Real-time updates validated
+* Security verified via Supabase Auth & RLS
+
+## 🔚 Current Status
+
+✅ MVP is complete
+✅ Demo-ready
+🚧 Final polish (logos, animations, notification extras) underway
+
+## 🧠 Future Enhancements
+
+* Live SMS/Email alerts for status changes
+* Multilingual support (Hindi, Tamil, etc.)
+* AI-based item demand forecasting per zone
+* Supplier-bidding module for lowest prices
+
+## 🤝 Made for Tutedude Hackathon
+
+**Team:** \Hacky Pandas
+**Date:** 27 July 2025
+
+---
+
+> "Join hands with fellow vendors. Buy smart. Save more. — RasoiLink"
