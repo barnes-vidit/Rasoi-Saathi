@@ -189,7 +189,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         error = supplierError;
       }
 
+      // Set user role in Supabase Auth metadata for claim enforcement
       if (!error) {
+        await supabase.auth.updateUser({
+          data: { role: data.type }
+        });
         await fetchUserProfile(user.id);
         toast({
           title: "Success",

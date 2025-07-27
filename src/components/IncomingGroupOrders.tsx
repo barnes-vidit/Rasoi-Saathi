@@ -10,6 +10,7 @@ import {
   CheckCircle,
   Truck
 } from "lucide-react";
+import { useState } from "react";
 
 interface GroupOrder {
   id: string;
@@ -103,6 +104,9 @@ export const IncomingGroupOrders = ({
     }
   ];
 
+  const [selectedZone, setSelectedZone] = useState<string>('all');
+  const allZones = Array.from(new Set(mockOrders.map(order => order.area)));
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -182,9 +186,25 @@ export const IncomingGroupOrders = ({
         </div>
       </div>
 
+      {/* Zone Filter */}
+      <div className="px-4 pt-4">
+        <select
+          className="w-full p-2 rounded border border-muted-foreground bg-white mb-4"
+          value={selectedZone}
+          onChange={e => setSelectedZone(e.target.value)}
+        >
+          <option value="all">{language === 'hi' ? 'सभी क्षेत्र' : 'All Zones'}</option>
+          {allZones.map(zone => (
+            <option key={zone} value={zone}>{zone}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Content */}
       <div className="p-4 space-y-4">
-        {mockOrders.map((order) => (
+        {mockOrders
+          .filter(order => selectedZone === 'all' || order.area === selectedZone)
+          .map((order) => (
           <Card key={order.id} className="p-4 shadow-card">
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1">
@@ -194,66 +214,54 @@ export const IncomingGroupOrders = ({
                     {order.area}
                   </span>
                 </div>
-                
                 <div className="flex items-center text-muted-foreground text-sm mb-2">
                   <Clock className="w-4 h-4 mr-1" />
                   {t.scheduledFor}: {order.scheduledTime}
                 </div>
+                <div className="flex items-center text-muted-foreground text-sm mb-2">
+                  <Users className="w-4 h-4 mr-1" />
+                  {order.vendorCount} {t.vendors}
+                </div>
+                <div className="flex items-center text-muted-foreground text-sm mb-2">
+                  <Package className="w-4 h-4 mr-1" />
+                  {t.totalValue}: ₹{order.totalValue}
+                </div>
               </div>
-              
-              {getStatusBadge(order.status)}
+              <div className="text-right">
+                {getStatusBadge(order.status)}
+              </div>
             </div>
-
-            {/* Items List */}
-            <div className="mb-4">
-              <div className="flex items-center mb-2">
-                <Package className="w-4 h-4 text-primary mr-2" />
-                <span className="font-medium">Items:</span>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {order.items.map((item, index) => (
-                  <span key={index}>
-                    {item.name} ({item.quantity}{item.unit})
-                    {index < order.items.length - 1 ? ', ' : ''}
-                  </span>
+            {/* Items Preview */}
+            <div className="mb-2">
+              <div className="grid grid-cols-2 gap-2">
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="text-sm">
+                    <span className="font-medium">{item.name}</span>
+                    <span className="text-muted-foreground ml-1">
+                      ({item.quantity}{item.unit})
+                    </span>
+                  </div>
                 ))}
               </div>
             </div>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <div className="text-center">
-                <div className="text-lg font-bold text-success">
-                  ₹{order.totalValue.toLocaleString()}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {t.totalValue}
-                </div>
+            {/* Vendor Orders Grouping (mocked for now) */}
+            <div className="mt-2 p-2 bg-muted rounded">
+              <div className="font-semibold mb-1 text-sm text-muted-foreground">
+                {language === 'hi' ? 'दुकानदार ऑर्डर' : 'Vendor Orders'}
               </div>
-              
-              <div className="text-center">
-                <div className="flex items-center justify-center text-lg font-bold text-primary">
-                  <Users className="w-4 h-4 mr-1" />
-                  {order.vendorCount}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {t.vendors}
-                </div>
-              </div>
-              
-              <div className="text-center">
-                <div className="flex items-center justify-center text-lg font-bold text-warning">
-                  <Clock className="w-4 h-4 mr-1" />
-                  {order.scheduledTime}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  {t.scheduledFor}
-                </div>
+              <div className="space-y-1">
+                {/* Replace with real vendor order data if available */}
+                {[...Array(order.vendorCount)].map((_, i) => (
+                  <div key={i} className="flex justify-between text-xs">
+                    <span>{language === 'hi' ? `दुकानदार ${i+1}` : `Vendor ${i+1}`}</span>
+                    <span className="text-muted-foreground">{language === 'hi' ? 'स्थिति: लंबित' : 'Status: Pending'}</span>
+                  </div>
+                ))}
               </div>
             </div>
-
-            {/* Action Button */}
-            {getActionButton(order)}
+            <div className="mt-4">
+              {getActionButton(order)}
+            </div>
           </Card>
         ))}
       </div>

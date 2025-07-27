@@ -250,7 +250,14 @@ export const GroupOrdersListIntegrated = ({
               <Button 
                 variant="outline"
                 size="mobile"
-                onClick={() => window.location.href = '/?screen=status'}
+                onClick={() => {
+                  if (typeof setCurrentScreen === 'function') {
+                    setCurrentScreen('status');
+                  } else {
+                    // fallback for legacy: reload with ?screen=status
+                    window.location.href = '/?screen=status';
+                  }
+                }}
                 className="flex-1"
               >
                 {language === 'hi' ? 'मेरे ऑर्डर' : 'My Orders'}

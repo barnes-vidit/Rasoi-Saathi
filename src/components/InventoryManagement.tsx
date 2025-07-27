@@ -31,6 +31,8 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
     price_per_kg: '',
     available_qty: ''
   });
+  const [editItemId, setEditItemId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState({ name: '', price_per_kg: '', available_qty: '' });
   const { userProfile } = useAuth();
   const { toast } = useToast();
 
@@ -117,6 +119,53 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
         description: "Failed to add item",
         variant: "destructive",
       });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditItem = (item: Item) => {
+    setEditItemId(item.id);
+    setEditFormData({
+      name: item.name,
+      price_per_kg: item.price_per_kg.toString(),
+      available_qty: item.available_qty.toString()
+    });
+    setShowAddForm(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editItemId || !editFormData.name || !editFormData.price_per_kg) return;
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('items')
+        .update({
+          name: editFormData.name,
+          price_per_kg: parseFloat(editFormData.price_per_kg),
+          available_qty: parseFloat(editFormData.available_qty) || 0
+        })
+        .eq('id', editItemId);
+      if (error) throw error;
+      toast({ title: 'Success', description: 'Item updated!' });
+      setEditItemId(null);
+      fetchItems();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update item', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteItem = async (itemId: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.from('items').delete().eq('id', itemId);
+      if (error) throw error;
+      toast({ title: 'Deleted', description: 'Item deleted.' });
+      fetchItems();
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to delete item', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -255,7 +304,48 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
                       </div>
                     </div>
                   </div>
+                  <div className="flex flex-col gap-2 ml-2">
+                    <Button variant="outline" size="icon" onClick={() => handleEditItem(item)}>
+                      ✏️
+                    </Button>
+                    <Button variant="destructive" size="icon" onClick={() => handleDeleteItem(item.id)} disabled={loading}>
+                      🗑️
+                    </Button>
+                  </div>
                 </div>
+                {/* Inline Edit Form */}
+                {editItemId === item.id && (
+                  <div className="mt-4 space-y-2">
+                    <Input
+                      placeholder={t.itemName}
+                      value={editFormData.name}
+                      onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
+                      className="h-10"
+                    />
+                    <Input
+                      type="number"
+                      placeholder={t.pricePerKg}
+                      value={editFormData.price_per_kg}
+                      onChange={e => setEditFormData({ ...editFormData, price_per_kg: e.target.value })}
+                      className="h-10"
+                    />
+                    <Input
+                      type="number"
+                      placeholder={t.quantity}
+                      value={editFormData.available_qty}
+                      onChange={e => setEditFormData({ ...editFormData, available_qty: e.target.value })}
+                      className="h-10"
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <Button variant="mobile" onClick={handleSaveEdit} disabled={loading}>
+                        {loading ? 'Saving...' : t.save}
+                      </Button>
+                      <Button variant="outline" onClick={() => setEditItemId(null)}>
+                        {t.cancel}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </Card>
             ))
           )}
