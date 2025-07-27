@@ -5,7 +5,7 @@ import { GroupOrdersListIntegrated } from "./GroupOrdersListIntegrated";
 import { VendorSelection } from "./VendorSelection";
 import { ItemSelection } from "./ItemSelection";
 import { OrderSummary } from "./OrderSummary";
-import { PaymentScreen } from "./PaymentScreen";
+import { PaymentIntegration } from "./PaymentIntegration";
 import { OrderStatus } from "./OrderStatus";
 import { SupplierDashboard } from "./SupplierDashboard";
 import { AddInventory } from "./AddInventory";
@@ -14,6 +14,8 @@ import { DeliveryStatusPanel } from "./DeliveryStatusPanel";
 import { ZoneSelection } from "./ZoneSelection";
 import { OrderStatusIntegrated } from "./OrderStatusIntegrated";
 import { SupplierDispatchPanel } from "./SupplierDispatchPanel";
+import { CreateGroupOrder } from "./CreateGroupOrder";
+import { InventoryManagement } from "./InventoryManagement";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -21,17 +23,19 @@ type AppScreen =
   | 'language' 
   | 'login' 
   | 'zone-select'
-  | 'orders' 
+  | 'orders'
   | 'vendors'
-  | 'items' 
-  | 'summary' 
-  | 'payment' 
+  | 'items'
+  | 'summary'
+  | 'payment'
   | 'status'
   | 'supplier-dashboard'
   | 'add-inventory'
   | 'incoming-orders'
   | 'delivery-panel'
-  | 'dispatch-panel';
+  | 'dispatch-panel'
+  | 'create-group-order'
+  | 'inventory-management';
 
 export const RasoiLinkAppIntegrated = () => {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('language');
@@ -141,7 +145,7 @@ export const RasoiLinkAppIntegrated = () => {
 
   // Supplier handlers
   const handleAddInventory = () => {
-    setCurrentScreen('add-inventory');
+    setCurrentScreen('inventory-management');
   };
 
   const handleViewOrders = () => {
@@ -150,6 +154,10 @@ export const RasoiLinkAppIntegrated = () => {
 
   const handleDeliveryPanel = () => {
     setCurrentScreen('dispatch-panel');
+  };
+
+  const handleCreateGroupOrder = () => {
+    setCurrentScreen('create-group-order');
   };
 
   const handleAcceptOrder = (orderId: string) => {
@@ -234,11 +242,13 @@ export const RasoiLinkAppIntegrated = () => {
       
       case 'payment':
         return (
-          <PaymentScreen 
+          <PaymentIntegration 
             language={language}
             totalAmount={totalAmount}
+            cartItems={cartItems}
+            groupOrderId={selectedGroupOrder || ''}
             onBack={() => setCurrentScreen('summary')}
-            onPaymentSuccess={handlePaymentSuccess}
+            onSuccess={handlePaymentSuccess}
           />
         );
       
@@ -257,6 +267,24 @@ export const RasoiLinkAppIntegrated = () => {
             onAddInventory={handleAddInventory}
             onViewOrders={handleViewOrders}
             onDeliveryPanel={handleDeliveryPanel}
+            onCreateGroupOrder={handleCreateGroupOrder}
+          />
+        );
+
+      case 'inventory-management':
+        return (
+          <InventoryManagement 
+            language={language}
+            onBack={() => setCurrentScreen('supplier-dashboard')}
+          />
+        );
+
+      case 'create-group-order':
+        return (
+          <CreateGroupOrder 
+            language={language}
+            onBack={() => setCurrentScreen('supplier-dashboard')}
+            onSuccess={() => setCurrentScreen('incoming-orders')}
           />
         );
 

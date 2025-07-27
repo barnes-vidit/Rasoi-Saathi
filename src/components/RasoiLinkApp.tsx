@@ -184,6 +184,7 @@ export const RasoiLinkApp = () => {
             onAddInventory={handleAddInventory}
             onViewOrders={handleViewOrders}
             onDeliveryPanel={handleDeliveryPanel}
+            onCreateGroupOrder={() => {}}
           />
         );
 

@@ -4,9 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Plus, 
   Package, 
-  MapPin, 
-  Clock,
-  TrendingUp,
+  ShoppingCart,
+  Truck,
   Users
 } from "lucide-react";
 
@@ -15,40 +14,40 @@ interface SupplierDashboardProps {
   onAddInventory: () => void;
   onViewOrders: () => void;
   onDeliveryPanel: () => void;
+  onCreateGroupOrder: () => void;
 }
 
 export const SupplierDashboard = ({ 
   language, 
   onAddInventory, 
-  onViewOrders,
-  onDeliveryPanel 
+  onViewOrders, 
+  onDeliveryPanel,
+  onCreateGroupOrder 
 }: SupplierDashboardProps) => {
   const text = {
     hi: {
-      title: "आपूर्तिकर्ता डैशबोर्ड",
-      subtitle: "अपने व्यापार को प्रबंधित करें",
-      addItem: "नया आइटम जोड़ें",
-      viewItems: "अपलोड किए गए आइटम",
-      pendingOrders: "लंबित ऑर्डर",
-      deliveryZones: "डिलीवरी क्षेत्र",
-      viewOrders: "ऑर्डर देखें",
-      deliveryPanel: "डिलीवरी पैनल",
-      todayStats: "आज के आंकड़े",
-      revenue: "आय",
-      orders: "ऑर्डर"
+      title: "सप्लायर डैशबोर्ड",
+      subtitle: "अपने बिजनेस को मैनेज करें",
+      inventory: "इन्वेंटरी",
+      inventoryDesc: "अपने आइटम्स मैनेज करें",
+      orders: "ऑर्डर्स",
+      ordersDesc: "आने वाले ऑर्डर्स देखें", 
+      delivery: "डिलीवरी",
+      deliveryDesc: "ऑर्डर्स डिस्पैच करें",
+      createOrder: "ग्रुप ऑर्डर बनाएं",
+      createOrderDesc: "नया ग्रुप ऑर्डर शुरू करें"
     },
     en: {
       title: "Supplier Dashboard",
       subtitle: "Manage your business",
-      addItem: "Add New Item",
-      viewItems: "Uploaded Items",
-      pendingOrders: "Pending Orders",
-      deliveryZones: "Delivery Zones",
-      viewOrders: "View Orders",
-      deliveryPanel: "Delivery Panel",
-      todayStats: "Today's Stats",
-      revenue: "Revenue",
-      orders: "Orders"
+      inventory: "Inventory",
+      inventoryDesc: "Manage your items",
+      orders: "Orders", 
+      ordersDesc: "View incoming orders",
+      delivery: "Delivery",
+      deliveryDesc: "Dispatch orders",
+      createOrder: "Create Group Order",
+      createOrderDesc: "Start a new group order"
     }
   };
 
@@ -77,100 +76,60 @@ export const SupplierDashboard = ({
 
       {/* Content */}
       <div className="p-4 space-y-6">
-        {/* Quick Actions */}
+        {/* Dashboard Cards */}
         <div className="grid grid-cols-2 gap-4">
-          <Button 
-            variant="fresh"
-            size="mobile"
-            className="h-20 flex-col"
+          <Card 
+            className="p-6 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={onCreateGroupOrder}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary-soft/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Plus className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="font-medium text-lg mb-2">{t.createOrder}</h3>
+              <p className="text-muted-foreground text-sm">{t.createOrderDesc}</p>
+            </div>
+          </Card>
+
+          <Card 
+            className="p-6 cursor-pointer hover:shadow-md transition-shadow"
             onClick={onAddInventory}
           >
-            <Plus className="w-8 h-8 mb-2" />
-            {t.addItem}
-          </Button>
-          
-          <Button 
-            variant="spice"
-            size="mobile"
-            className="h-20 flex-col"
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary-soft/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Package className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="font-medium text-lg mb-2">{t.inventory}</h3>
+              <p className="text-muted-foreground text-sm">{t.inventoryDesc}</p>
+            </div>
+          </Card>
+
+          <Card 
+            className="p-6 cursor-pointer hover:shadow-md transition-shadow"
             onClick={onViewOrders}
           >
-            <Package className="w-8 h-8 mb-2" />
-            {t.viewOrders}
-          </Button>
-        </div>
-
-        {/* Today's Stats */}
-        <Card className="p-4">
-          <h2 className="text-lg font-semibold mb-4 flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2 text-primary" />
-            {t.todayStats}
-          </h2>
-          
-          <div className="grid grid-cols-2 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-success">
-                ₹{mockStats.todayRevenue.toLocaleString()}
+              <div className="w-16 h-16 bg-primary-soft/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <ShoppingCart className="w-8 h-8 text-primary" />
               </div>
-              <div className="text-sm text-muted-foreground">
-                {t.revenue}
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary">
-                {mockStats.todayOrders}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {t.orders}
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Business Stats */}
-        <div className="grid grid-cols-3 gap-4">
-          <Card className="p-4 text-center">
-            <Package className="w-8 h-8 text-primary mx-auto mb-2" />
-            <div className="text-xl font-bold text-foreground">
-              {mockStats.uploadedItems}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {t.viewItems}
+              <h3 className="font-medium text-lg mb-2">{t.orders}</h3>
+              <p className="text-muted-foreground text-sm">{t.ordersDesc}</p>
             </div>
           </Card>
-          
-          <Card className="p-4 text-center">
-            <Clock className="w-8 h-8 text-warning mx-auto mb-2" />
-            <div className="text-xl font-bold text-foreground">
-              {mockStats.pendingOrders}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {t.pendingOrders}
-            </div>
-          </Card>
-          
-          <Card className="p-4 text-center">
-            <MapPin className="w-8 h-8 text-success mx-auto mb-2" />
-            <div className="text-xl font-bold text-foreground">
-              {mockStats.deliveryZones}
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {t.deliveryZones}
+
+          <Card 
+            className="p-6 cursor-pointer hover:shadow-md transition-shadow"
+            onClick={onDeliveryPanel}
+          >
+            <div className="text-center">
+              <div className="w-16 h-16 bg-primary-soft/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Truck className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="font-medium text-lg mb-2">{t.delivery}</h3>
+              <p className="text-muted-foreground text-sm">{t.deliveryDesc}</p>
             </div>
           </Card>
         </div>
-
-        {/* Delivery Panel Access */}
-        <Button 
-          variant="outline"
-          size="mobile"
-          className="w-full"
-          onClick={onDeliveryPanel}
-        >
-          <Users className="w-6 h-6 mr-3" />
-          {t.deliveryPanel}
-        </Button>
       </div>
     </div>
   );
