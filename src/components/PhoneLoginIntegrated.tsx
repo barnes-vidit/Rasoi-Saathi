@@ -97,12 +97,19 @@ export const PhoneLoginIntegrated = ({
   };
 
   const handleVerifyOtp = async () => {
-    if (otp.length === 6) {
+    if (otp.length === 6 && !loading) {
       setLoading(true);
-      const { error } = await verifyOtp(phone, otp);
-      setLoading(false);
-      if (!error) {
-        setStep('profile');
+      try {
+        const { error } = await verifyOtp(phone, otp);
+        if (!error) {
+          setStep('profile');
+        } else {
+          console.error('OTP verification error:', error);
+        }
+      } catch (err) {
+        console.error('OTP verification failed:', err);
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -221,10 +228,17 @@ export const PhoneLoginIntegrated = ({
                 </Label>
                 <Input
                   id="otp"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   placeholder="123456"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    if (value.length <= 6) {
+                      setOtp(value);
+                    }
+                  }}
                   className="h-14 text-lg text-center tracking-widest"
                   maxLength={6}
                 />
