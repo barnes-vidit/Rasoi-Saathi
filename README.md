@@ -110,8 +110,8 @@ A mobile-first web app enabling Indian street food vendors to collaboratively pl
 
 ## 🤝 Made for Tutedude Hackathon
 
-**Team:** \Hacky Pandas
-**Date:** 27 July 2025
+**Team:** Hacky Pandas
+**Team Members:** Kritika Rathore, Malay Choudhary, Vidit Sharma
 
 ---
 
