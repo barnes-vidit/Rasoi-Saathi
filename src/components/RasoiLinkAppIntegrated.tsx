@@ -73,16 +73,26 @@ export const RasoiLinkAppIntegrated = () => {
     }
   };
 
-  const handleZoneSelect = (zone: string) => {
+  const handleZoneSelect = async (zone: string) => {
     // Update vendor zone in database
     if (userProfile?.id) {
-      supabase
-        .from('vendors')
-        .update({ zone })
-        .eq('id', userProfile.id)
-        .then(() => {
-          setCurrentScreen('orders');
-        });
+      try {
+        const { error } = await supabase
+          .from('vendors')
+          .update({ zone })
+          .eq('id', userProfile.id);
+        
+        if (error) {
+          console.error('Zone update error:', error);
+          // Still proceed to orders screen even if update fails
+        }
+        
+        setCurrentScreen('orders');
+      } catch (err) {
+        console.error('Zone selection error:', err);
+        // Proceed anyway
+        setCurrentScreen('orders');
+      }
     }
   };
 
