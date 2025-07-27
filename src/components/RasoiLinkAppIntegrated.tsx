@@ -108,6 +108,7 @@ export const RasoiLinkAppIntegrated = () => {
   };
 
   const handleStartOrder = () => {
+    console.log('Starting new order, navigating to vendors screen');
     setSelectedGroupOrder(null);
     setCurrentScreen('vendors');
   };
