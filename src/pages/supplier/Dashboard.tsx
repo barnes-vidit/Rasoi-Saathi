@@ -1,31 +1,22 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Plus, 
-  Package, 
+import {
+  Plus,
+  Package,
   ShoppingCart,
   Truck,
   Users
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
-interface SupplierDashboardProps {
-  language: 'hi' | 'en';
-  onAddInventory: () => void;
-  onViewOrders: () => void;
-  onDeliveryPanel: () => void;
-  onCreateGroupOrder: () => void;
-}
-
-export const SupplierDashboard = ({ 
-  language, 
-  onAddInventory, 
-  onViewOrders, 
-  onDeliveryPanel,
-  onCreateGroupOrder 
-}: SupplierDashboardProps) => {
+export const SupplierDashboard = () => {
   const { userProfile } = useAuth();
+  const navigate = useNavigate();
+  const { language } = useOrder();
+
   const text = {
     hi: {
       title: "सप्लायर डैशबोर्ड",
@@ -33,7 +24,7 @@ export const SupplierDashboard = ({
       inventory: "इन्वेंटरी",
       inventoryDesc: "अपने आइटम्स मैनेज करें",
       orders: "ऑर्डर्स",
-      ordersDesc: "आने वाले ऑर्डर्स देखें", 
+      ordersDesc: "आने वाले ऑर्डर्स देखें",
       delivery: "डिलीवरी",
       deliveryDesc: "ऑर्डर्स डिस्पैच करें",
       createOrder: "ग्रुप ऑर्डर बनाएं",
@@ -44,7 +35,7 @@ export const SupplierDashboard = ({
       subtitle: "Manage your business",
       inventory: "Inventory",
       inventoryDesc: "Manage your items",
-      orders: "Orders", 
+      orders: "Orders",
       ordersDesc: "View incoming orders",
       delivery: "Delivery",
       deliveryDesc: "Dispatch orders",
@@ -116,9 +107,9 @@ export const SupplierDashboard = ({
       <div className="p-4 space-y-6">
         {/* Dashboard Cards */}
         <div className="grid grid-cols-2 gap-4">
-          <Card 
+          <Card
             className="p-6 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={onCreateGroupOrder}
+            onClick={() => navigate('/create-group-order')}
           >
             <div className="text-center">
               <div className="w-16 h-16 bg-primary-soft/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -129,9 +120,9 @@ export const SupplierDashboard = ({
             </div>
           </Card>
 
-          <Card 
+          <Card
             className="p-6 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={onAddInventory}
+            onClick={() => navigate('/supplier/inventory')}
           >
             <div className="text-center">
               <div className="w-16 h-16 bg-primary-soft/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -142,9 +133,9 @@ export const SupplierDashboard = ({
             </div>
           </Card>
 
-          <Card 
+          <Card
             className="p-6 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={onViewOrders}
+            onClick={() => navigate('/supplier/incoming-orders')}
           >
             <div className="text-center">
               <div className="w-16 h-16 bg-primary-soft/20 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -155,9 +146,9 @@ export const SupplierDashboard = ({
             </div>
           </Card>
 
-          <Card 
+          <Card
             className="p-6 cursor-pointer hover:shadow-md transition-shadow"
-            onClick={onDeliveryPanel}
+            onClick={() => navigate('/supplier/delivery')}
           >
             <div className="text-center">
               <div className="w-16 h-16 bg-primary-soft/20 rounded-full flex items-center justify-center mx-auto mb-4">

@@ -2,15 +2,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Users, Clock, CreditCard, TrendingDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
-interface OrderSummaryProps {
-  language: 'hi' | 'en';
-  cartItems: any[];
-  onBack: () => void;
-  onProceedToPay: () => void;
-}
+export const OrderSummary = () => {
+  const navigate = useNavigate();
+  const { language, cartItems } = useOrder();
 
-export const OrderSummary = ({ language, cartItems, onBack, onProceedToPay }: OrderSummaryProps) => {
   const text = {
     hi: {
       title: "ऑर्डर समरी",
@@ -73,10 +71,10 @@ export const OrderSummary = ({ language, cartItems, onBack, onProceedToPay }: Or
       {/* Header */}
       <div className="bg-white shadow-card p-4 sticky top-0 z-10">
         <div className="flex items-center mb-2">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon-lg"
-            onClick={onBack}
+            onClick={() => navigate(-1)}
             className="mr-4"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -106,7 +104,7 @@ export const OrderSummary = ({ language, cartItems, onBack, onProceedToPay }: Or
                 {t.vendors}
               </div>
             </div>
-            
+
             <div>
               <div className="flex items-center justify-center text-2xl font-bold text-warning mb-1">
                 <Clock className="w-6 h-6 mr-2" />
@@ -116,7 +114,7 @@ export const OrderSummary = ({ language, cartItems, onBack, onProceedToPay }: Or
                 minutes
               </div>
             </div>
-            
+
             <div>
               <div className="flex items-center justify-center text-2xl font-bold text-success mb-1">
                 <TrendingDown className="w-6 h-6 mr-2" />
@@ -134,29 +132,33 @@ export const OrderSummary = ({ language, cartItems, onBack, onProceedToPay }: Or
           <h3 className="text-xl font-semibold mb-4 flex items-center">
             <span>{t.yourOrder}</span>
           </h3>
-          
+
           <div className="space-y-3">
             {cartItems.map((item, index) => {
-              const displayName = language === 'hi' ? item.nameHi : item.name;
+              const displayName = item.name; // Simplified, in real app might have nameHi
               const originalItemPrice = item.pricePerKg * item.quantity;
               const groupItemPrice = Math.round(originalItemPrice * (1 - groupData.discount / 100));
-              
+
               return (
                 <div key={index} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                   <div className="flex items-center flex-1">
-                    <img 
-                      src={item.image} 
-                      alt={displayName}
-                      className="w-12 h-12 rounded-lg object-cover mr-3"
-                    />
+                    {item.image_url ? (
+                      <img
+                        src={item.image_url}
+                        alt={displayName}
+                        className="w-12 h-12 rounded-lg object-cover mr-3"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gray-200 mr-3 flex items-center justify-center text-xs">No Img</div>
+                    )}
                     <div>
                       <div className="font-medium">{displayName}</div>
                       <div className="text-sm text-muted-foreground">
-                        {item.quantity} {item.unit}
+                        {item.quantity} kg
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="text-right">
                     <div className="font-semibold text-primary">₹{groupItemPrice}</div>
                     <div className="text-xs text-muted-foreground line-through">₹{originalItemPrice}</div>
@@ -174,19 +176,19 @@ export const OrderSummary = ({ language, cartItems, onBack, onProceedToPay }: Or
               <span>{t.originalPrice}</span>
               <span>₹{calculateOriginalPrice()}</span>
             </div>
-            
+
             <div className="flex justify-between text-success">
               <span>{t.groupDiscount} (-{groupData.discount}%)</span>
               <span>-₹{calculateSavings()}</span>
             </div>
-            
+
             <div className="border-t border-border pt-3">
               <div className="flex justify-between text-xl font-bold">
                 <span>{t.totalAmount}</span>
                 <span className="text-primary">₹{calculateGroupPrice()}</span>
               </div>
             </div>
-            
+
             <Badge variant="secondary" className="w-full justify-center py-2 bg-success/10 text-success border-success/20">
               <TrendingDown className="w-4 h-4 mr-2" />
               {t.savings}: ₹{calculateSavings()}
@@ -197,11 +199,11 @@ export const OrderSummary = ({ language, cartItems, onBack, onProceedToPay }: Or
 
       {/* Proceed to Pay Button */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-floating">
-        <Button 
+        <Button
           variant="fresh"
           size="mobile"
           className="w-full"
-          onClick={onProceedToPay}
+          onClick={() => navigate('/payment')}
         >
           <CreditCard className="w-6 h-6 mr-3" />
           {t.proceedToPay} ₹{calculateGroupPrice()}

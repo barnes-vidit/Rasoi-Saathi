@@ -1,37 +1,63 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Phone, Shield, CheckCircle } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
+import { supabase } from "@/integrations/supabase/client";
 
-interface PhoneLoginIntegratedProps {
-  language: 'hi' | 'en';
-  onBack: () => void;
-  onSuccess: () => void;
-  userType: 'vendor' | 'supplier';
-  onUserTypeChange: (type: 'vendor' | 'supplier') => void;
-}
+export const PhoneLoginIntegrated = () => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { language } = useOrder();
 
-export const PhoneLoginIntegrated = ({ 
-  language, 
-  onBack, 
-  onSuccess, 
-  userType, 
-  onUserTypeChange 
-}: PhoneLoginIntegratedProps) => {
   const [step, setStep] = useState<'phone' | 'otp' | 'profile'>('phone');
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
+  const [userType, setUserType] = useState<'vendor' | 'supplier'>('vendor');
   const [profileData, setProfileData] = useState({
     name: '',
     zone: '',
     delivery_zones: [] as string[]
   });
   const [loading, setLoading] = useState(false);
+  const [zones, setZones] = useState<string[]>([]);
 
   const { signInWithPhone, verifyOtp, createUserProfile } = useAuth();
+
+  useEffect(() => {
+    const fetchZones = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('zones' as any)
+          .select('name')
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching zones:', error);
+          // Fallback if table doesn't exist or DB issue
+          setZones([
+            'Lajpat Nagar', 'Karol Bagh', 'Chandni Chowk',
+            'Connaught Place', 'Paharganj', 'Sarojini Nagar'
+          ]);
+        } else {
+          setZones((data as any[]).map(z => z.name));
+        }
+      } catch (err) {
+        console.error('Failed to fetch zones:', err);
+        setZones([
+          'Lajpat Nagar', 'Karol Bagh', 'Chandni Chowk',
+          'Connaught Place', 'Paharganj', 'Sarojini Nagar'
+        ]);
+      }
+    };
+
+    fetchZones();
+  }, []);
 
   const text = {
     hi: {
@@ -76,38 +102,73 @@ export const PhoneLoginIntegrated = ({
 
   const t = text[language];
 
-  const zones = [
-    'Lajpat Nagar',
-    'Karol Bagh',
-    'Chandni Chowk',
-    'Connaught Place',
-    'Paharganj',
-    'Sarojini Nagar'
-  ];
-
   const handleSendOtp = async () => {
-    if (phone.length >= 10) {
-      setLoading(true);
-      const { error } = await signInWithPhone(phone);
-      setLoading(false);
+    // Validate phone number format
+    const phoneRegex = /^(\+91|91)?[6-9][0-9]{9}$/;
+    const cleanPhone = phone.replace(/\s+/g, '');
+    if (!phoneRegex.test(cleanPhone)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: language === 'hi' ? "कृपया एक वैध भारतीय फोन नंबर दर्ज करें" : "Please enter a valid Indian phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await signInWithPhone(cleanPhone);
       if (!error) {
         setStep('otp');
+        toast({
+          title: language === 'hi' ? "OTP भेजा गया" : "OTP Sent",
+          description: language === 'hi' ? "कृपया अपने फोन पर OTP की जाँच करें" : "Please check your phone for OTP",
+        });
+      } else {
+        toast({
+          title: language === 'hi' ? "त्रुटि" : "Error",
+          description: language === 'hi' ? "OTP भेजने में विफल। कृपया पुनः प्रयास करें।" : "Failed to send OTP. Please try again.",
+          variant: "destructive",
+        });
       }
+    } catch (err) {
+      toast({
+        title: language === 'hi' ? "नेटवर्क त्रुटि" : "Network Error",
+        description: language === 'hi' ? "कृपया अपने कनेक्शन की जाँच करें" : "Please check your connection",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleVerifyOtp = async () => {
-    if (otp.length === 6 && !loading) {
+    if (!/^\d{6}$/.test(otp)) {
+      toast({
+        title: language === 'hi' ? "अमान्य OTP" : "Invalid OTP",
+        description: language === 'hi' ? "कृपया 6 अंकों का सही OTP दर्ज करें" : "Please enter a valid 6-digit OTP",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!loading) {
       setLoading(true);
       try {
         const { error } = await verifyOtp(phone, otp);
         if (!error) {
           setStep('profile');
-        } else {
-          console.error('OTP verification error:', error);
+          toast({
+            title: language === 'hi' ? "सत्यापित" : "Verified",
+            description: language === 'hi' ? "OTP सत्यापन सफल" : "OTP verification successful",
+          });
         }
-      } catch (err) {
-        console.error('OTP verification failed:', err);
+      } catch (err: any) {
+        toast({
+          title: language === 'hi' ? "त्रुटि" : "Error",
+          description: err.message,
+          variant: "destructive",
+        });
       } finally {
         setLoading(false);
       }
@@ -117,15 +178,39 @@ export const PhoneLoginIntegrated = ({
   const handleCreateProfile = async () => {
     if (profileData.name && (userType === 'supplier' || profileData.zone)) {
       setLoading(true);
-      const { error } = await createUserProfile({
-        type: userType,
-        phone,
-        ...profileData,
-        delivery_zones: userType === 'supplier' ? zones : []
-      });
-      setLoading(false);
-      if (!error) {
-        onSuccess();
+      try {
+        const { error } = await createUserProfile({
+          type: userType,
+          phone,
+          ...profileData,
+          delivery_zones: userType === 'supplier' ? zones : []
+        });
+
+        if (error) {
+          throw error;
+        }
+
+        toast({
+          title: language === 'hi' ? "सफलता" : "Success",
+          description: language === 'hi' ? "आपकी प्रोफ़ाइल बन गई है" : "Your profile has been created successfully",
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // Navigate based on user type
+        if (userType === 'supplier') {
+          navigate('/supplier/dashboard');
+        } else {
+          navigate('/zone-select');
+        }
+      } catch (err: any) {
+        toast({
+          title: language === 'hi' ? "त्रुटि" : "Error",
+          description: err.message,
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -142,10 +227,10 @@ export const PhoneLoginIntegrated = ({
       )}
       {/* Header */}
       <div className="flex items-center mb-8 mt-4">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="icon-lg"
-          onClick={onBack}
+          onClick={() => navigate('/')}
           className="mr-4"
         >
           <ArrowLeft className="w-6 h-6" />
@@ -173,24 +258,24 @@ export const PhoneLoginIntegrated = ({
                   <Button
                     variant={userType === 'vendor' ? 'default' : 'outline'}
                     size="mobile"
-                    onClick={() => onUserTypeChange('vendor')}
+                    onClick={() => setUserType('vendor')}
                   >
                     {t.vendor}
                   </Button>
                   <Button
                     variant={userType === 'supplier' ? 'default' : 'outline'}
                     size="mobile"
-                    onClick={() => onUserTypeChange('supplier')}
+                    onClick={() => setUserType('supplier')}
                   >
                     {t.supplier}
                   </Button>
                 </div>
               </div>
-              
+
               <div className="text-center mb-2">
                 <Phone className="w-12 h-12 text-primary mx-auto p-2 bg-primary-soft rounded-full" />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="phone" className="text-lg font-medium">
                   {t.phonePlaceholder}
@@ -206,7 +291,7 @@ export const PhoneLoginIntegrated = ({
                 />
               </div>
 
-              <Button 
+              <Button
                 variant="mobile"
                 className="w-full mt-4"
                 onClick={handleSendOtp}
@@ -216,6 +301,12 @@ export const PhoneLoginIntegrated = ({
                   <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Sending...</span>
                 ) : t.sendOtp}
               </Button>
+
+              <div className="bg-secondary/20 p-3 rounded-lg text-sm text-center space-y-1">
+                <p className="font-semibold text-primary">Demo Access</p>
+                <p>Phone: 9999999999</p>
+                <p>OTP: 123456</p>
+              </div>
 
               <div className="flex items-center justify-center text-sm text-muted-foreground">
                 <Shield className="w-4 h-4 mr-2" />
@@ -230,7 +321,7 @@ export const PhoneLoginIntegrated = ({
                   OTP sent to +91 {phone}
                 </p>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="otp" className="text-lg font-medium">
                   {t.otpPlaceholder}
@@ -253,7 +344,7 @@ export const PhoneLoginIntegrated = ({
                 />
               </div>
 
-              <Button 
+              <Button
                 variant="mobile"
                 className="w-full mt-4"
                 onClick={handleVerifyOtp}
@@ -264,7 +355,11 @@ export const PhoneLoginIntegrated = ({
                 ) : t.verify}
               </Button>
 
-              <Button 
+              <div className="text-center text-sm text-muted-foreground">
+                Demo OTP: <b>123456</b>
+              </div>
+
+              <Button
                 variant="ghost"
                 size="mobile"
                 className="w-full"
@@ -307,7 +402,7 @@ export const PhoneLoginIntegrated = ({
                 </div>
               )}
 
-              <Button 
+              <Button
                 variant="mobile"
                 className="w-full mt-4"
                 onClick={handleCreateProfile}

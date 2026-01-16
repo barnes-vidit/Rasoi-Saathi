@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, Star, Truck, Clock } from "lucide-react";
+import { ArrowLeft, MapPin, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import vendorIcon from "@/assets/vendor-icon.jpg";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
 interface Supplier {
   id: string;
@@ -15,17 +17,13 @@ interface Supplier {
   created_at: string;
 }
 
-interface VendorSelectionProps {
-  language: 'hi' | 'en';
-  onBack: () => void;
-  onVendorSelect: (supplierId: string) => void;
-}
-
-export const VendorSelection = ({ language, onBack, onVendorSelect }: VendorSelectionProps) => {
-  const [selectedSupplier, setSelectedSupplier] = useState<string | null>(null);
+export const VendorSelection = () => {
+  const [selectedSupplierLocal, setSelectedSupplierLocal] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { language, setSelectedSupplier } = useOrder();
 
   const text = {
     hi: {
@@ -39,7 +37,8 @@ export const VendorSelection = ({ language, onBack, onVendorSelect }: VendorSele
       vegetables: "सब्जियां",
       grains: "अनाज",
       spices: "मसाले",
-      oil: "तेल"
+      oil: "तेल",
+      loading: "वेंडर्स लोड हो रहे हैं..."
     },
     en: {
       title: "Choose Wholesale Vendor",
@@ -50,53 +49,66 @@ export const VendorSelection = ({ language, onBack, onVendorSelect }: VendorSele
       specialties: "Specialties",
       continue: "Continue",
       vegetables: "Vegetables",
-      grains: "Grains", 
+      grains: "Grains",
       spices: "Spices",
-      oil: "Oil"
+      oil: "Oil",
+      loading: "Loading vendors..."
     }
   };
 
   const t = text[language];
-
   useEffect(() => {
+    const fetchSuppliers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('suppliers')
+          .select('*')
+          .order('name');
+
+        if (error) throw error;
+        setSuppliers(data || []);
+      } catch (error) {
+        console.error('Error fetching suppliers:', error);
+        toast({
+          title: language === 'hi' ? "त्रुटि" : "Error",
+          description: language === 'hi' ? "वेंडर लोड करने में समस्या" : "Error loading vendors",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchSuppliers();
-  }, []);
+  }, [language, toast]);
 
-  const fetchSuppliers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select('*')
-        .order('name');
-
-      if (error) throw error;
-      setSuppliers(data || []);
-    } catch (error) {
-      console.error('Error fetching suppliers:', error);
+  const handleSupplierSelect = (supplierId: string) => {
+    setSelectedSupplierLocal(supplierId);
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (supplier) {
       toast({
-        title: "Error",
-        description: "Failed to fetch suppliers",
-        variant: "destructive",
+        title: language === 'hi' ? "वेंडर चुना गया" : "Vendor Selected",
+        description: language === 'hi'
+          ? `${supplier.name} से खरीदारी करें`
+          : `Shop from ${supplier.name}`,
       });
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleSupplierSelect = (supplierId: string) => {
-    setSelectedSupplier(supplierId);
-  };
-
   const handleContinue = () => {
-    if (selectedSupplier) {
-      onVendorSelect(selectedSupplier);
+    if (!selectedSupplierLocal) return;
+
+    const supplier = suppliers.find(s => s.id === selectedSupplierLocal);
+    if (supplier) {
+      setSelectedSupplier(selectedSupplierLocal);
+      navigate('/items');
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-fresh flex items-center justify-center">
-        <div className="text-lg">Loading suppliers...</div>
+        <div className="text-lg">{t.loading}</div>
       </div>
     );
   }
@@ -106,10 +118,10 @@ export const VendorSelection = ({ language, onBack, onVendorSelect }: VendorSele
       {/* Header */}
       <div className="bg-white shadow-card p-4">
         <div className="flex items-center mb-4">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon-lg"
-            onClick={onBack}
+            onClick={() => navigate(-1)}
             className="mr-4"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -137,20 +149,19 @@ export const VendorSelection = ({ language, onBack, onVendorSelect }: VendorSele
             </div>
           ) : (
             suppliers.map((supplier) => (
-              <Card 
-                key={supplier.id} 
-                className={`p-4 shadow-card cursor-pointer transition-all ${
-                  selectedSupplier === supplier.id 
-                    ? 'ring-2 ring-primary bg-primary-soft/20' 
+              <Card
+                key={supplier.id}
+                className={`p-4 shadow-card cursor-pointer transition-all ${selectedSupplierLocal === supplier.id
+                    ? 'ring-2 ring-primary bg-primary-soft/20'
                     : 'hover:shadow-floating'
-                }`}
+                  }`}
                 onClick={() => handleSupplierSelect(supplier.id)}
               >
                 <div className="flex items-start space-x-4">
                   {/* Supplier Image */}
                   <div className="w-16 h-16 rounded-lg overflow-hidden bg-muted flex-shrink-0">
-                    <img 
-                      src={vendorIcon} 
+                    <img
+                      src={vendorIcon}
                       alt={supplier.name}
                       className="w-full h-full object-cover"
                     />
@@ -163,14 +174,14 @@ export const VendorSelection = ({ language, onBack, onVendorSelect }: VendorSele
                         <h3 className="font-bold text-lg text-foreground truncate">
                           {supplier.name}
                         </h3>
-                        
+
                         <div className="flex items-center text-muted-foreground text-sm mb-2">
                           <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
                           <span className="truncate">{supplier.phone}</span>
                         </div>
                       </div>
 
-                      {selectedSupplier === supplier.id && (
+                      {selectedSupplierLocal === supplier.id && (
                         <Badge variant="default" className="ml-2">
                           Selected
                         </Badge>
@@ -199,12 +210,12 @@ export const VendorSelection = ({ language, onBack, onVendorSelect }: VendorSele
 
         {/* Continue Button */}
         <div className="sticky bottom-4 pt-4">
-          <Button 
+          <Button
             variant="mobile"
             size="mobile"
             className="w-full"
             onClick={handleContinue}
-            disabled={!selectedSupplier}
+            disabled={!selectedSupplierLocal}
           >
             <Truck className="w-5 h-5 mr-2" />
             {t.continue}

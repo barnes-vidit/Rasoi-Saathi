@@ -9,6 +9,8 @@ import potatoImg from "@/assets/potato.jpg";
 import onionImg from "@/assets/onion.jpg";
 import tomatoImg from "@/assets/tomato.jpg";
 import oilImg from "@/assets/oil.jpg";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
 interface Item {
   id: string;
@@ -19,18 +21,13 @@ interface Item {
   supplier_id: string;
 }
 
-interface ItemSelectionProps {
-  language: 'hi' | 'en';
-  onBack: () => void;
-  onAddToCart: (items: any[]) => void;
-  supplierId?: string;
-}
-
-export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: ItemSelectionProps) => {
+export const ItemSelection = () => {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { language, selectedSupplier, addToCart, clearCart } = useOrder();
 
   const text = {
     hi: {
@@ -56,17 +53,22 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
   const t = text[language];
 
   useEffect(() => {
-    fetchItems();
-  }, [supplierId]);
+    if (selectedSupplier) {
+      fetchItems();
+    } else {
+      // Fallback for no supplier selected (maybe redirect?)
+      setLoading(false);
+    }
+  }, [selectedSupplier]);
 
   const fetchItems = async () => {
     try {
       let query = supabase.from('items').select('*');
-      
-      if (supplierId) {
-        query = query.eq('supplier_id', supplierId);
+
+      if (selectedSupplier) {
+        query = query.eq('supplier_id', selectedSupplier);
       }
-      
+
       const { data, error } = await query.order('name');
 
       if (error) throw error;
@@ -85,13 +87,13 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
 
   const getItemImage = (item: Item) => {
     if (item.image_url) return item.image_url;
-    
+
     // Fallback images based on name
     if (item.name.toLowerCase().includes('potato') || item.name.includes('आलू')) return potatoImg;
     if (item.name.toLowerCase().includes('onion') || item.name.includes('प्याज')) return onionImg;
     if (item.name.toLowerCase().includes('tomato') || item.name.includes('टमाटर')) return tomatoImg;
     if (item.name.toLowerCase().includes('oil') || item.name.includes('तेल')) return oilImg;
-    
+
     return potatoImg; // Default fallback
   };
 
@@ -100,13 +102,13 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
       const newCart = { ...prev };
       const currentQty = newCart[itemId] || 0;
       const newQty = Math.max(0, currentQty + change);
-      
+
       if (newQty === 0) {
         delete newCart[itemId];
       } else {
         newCart[itemId] = newQty;
       }
-      
+
       return newCart;
     });
   };
@@ -123,15 +125,23 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
   };
 
   const handleAddToCart = () => {
-    const cartItems = Object.entries(cart).map(([itemId, quantity]) => {
+    // Clear existing cart before adding new batch (assuming one supplier per order flow)
+    // Or just add/update. The requirement is global cart.
+    clearCart(); // Optional: Clear previous items if starting fresh selection
+
+    Object.entries(cart).forEach(([itemId, quantity]) => {
       const item = items.find(i => i.id === itemId);
-      return { 
-        ...item, 
-        quantity,
-        pricePerKg: item?.price_per_kg || 0 // For compatibility
-      };
+      if (item) {
+        addToCart({
+          id: item.id,
+          name: item.name,
+          pricePerKg: item.price_per_kg,
+          quantity: quantity,
+          image_url: item.image_url
+        });
+      }
     });
-    onAddToCart(cartItems);
+    navigate('/cart');
   };
 
   if (loading) {
@@ -147,9 +157,14 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
 
   if (!loading && items.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8">
-        <ShoppingCart className="w-16 h-16 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium mb-2">{language === 'hi' ? 'कोई आइटम नहीं मिला' : 'No items found'}</h3>
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-fresh">
+        <div className="bg-white p-8 rounded-lg shadow-card text-center">
+          <ShoppingCart className="w-16 h-16 text-muted-foreground mb-4 mx-auto" />
+          <h3 className="text-lg font-medium mb-2">{language === 'hi' ? 'कोई आइटम नहीं मिला' : 'No items found'}</h3>
+          <Button onClick={() => navigate(-1)} variant="outline" className="mt-4">
+            {language === 'hi' ? 'वापस जाएँ' : 'Go Back'}
+          </Button>
+        </div>
       </div>
     );
   }
@@ -159,10 +174,10 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
       {/* Header */}
       <div className="bg-white shadow-card p-4 sticky top-0 z-10">
         <div className="flex items-center mb-2">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon-lg"
-            onClick={onBack}
+            onClick={() => navigate(-1)}
             className="mr-4"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -195,13 +210,13 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
               return (
                 <Card key={item.id} className="p-3 shadow-card">
                   <div className="aspect-square mb-3 rounded-lg overflow-hidden bg-muted">
-                    <img 
-                      src={getItemImage(item)} 
+                    <img
+                      src={getItemImage(item)}
                       alt={displayName}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  
+
                   <div className="text-center mb-3">
                     <h3 className="font-semibold text-lg mb-1">
                       {displayName}
@@ -217,61 +232,61 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
                     </div>
                   </div>
 
-                {quantity === 0 ? (
-                  <Button 
-                    variant="outline"
-                    size="mobile"
-                    className="w-full"
-                    onClick={() => updateQuantity(item.id, 1)}
-                  >
-                    <Plus className="w-5 h-5 mr-2" />
-                    Add
-                  </Button>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between bg-muted rounded-lg p-2">
-                      <Button 
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => updateQuantity(item.id, -1)}
-                        className="h-8 w-8"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </Button>
-                      
-                       <div className="text-center">
-                         <div className="font-bold text-lg">{quantity}</div>
-                         <div className="text-xs text-muted-foreground">
-                           kg
-                         </div>
-                       </div>
-                      
-                      <Button 
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => updateQuantity(item.id, 1)}
-                        className="h-8 w-8"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </Button>
+                  {quantity === 0 ? (
+                    <Button
+                      variant="outline"
+                      size="mobile"
+                      className="w-full"
+                      onClick={() => updateQuantity(item.id, 1)}
+                    >
+                      <Plus className="w-5 h-5 mr-2" />
+                      Add
+                    </Button>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between bg-muted rounded-lg p-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => updateQuantity(item.id, -1)}
+                          className="h-8 w-8"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </Button>
+
+                        <div className="text-center">
+                          <div className="font-bold text-lg">{quantity}</div>
+                          <div className="text-xs text-muted-foreground">
+                            kg
+                          </div>
+                        </div>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => updateQuantity(item.id, 1)}
+                          className="h-8 w-8"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <div className="text-center text-sm text-primary font-semibold">
+                        ₹{item.price_per_kg * quantity}
+                      </div>
                     </div>
-                    
-                    <div className="text-center text-sm text-primary font-semibold">
-                      ₹{item.price_per_kg * quantity}
-                    </div>
-                  </div>
-                )}
-                 </Card>
-               );
-             })}
-           </div>
-         )}
-       </div>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Floating Cart Button */}
       {getTotalItems() > 0 && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-floating">
-          <Button 
+          <Button
             variant="fresh"
             size="mobile"
             className="w-full relative"
@@ -282,8 +297,8 @@ export const ItemSelection = ({ language, onBack, onAddToCart, supplierId }: Ite
             {loading ? (
               <span className="flex items-center justify-center"><span className="animate-spin mr-2">⏳</span>Adding...</span>
             ) : t.addToCart}
-            <Badge 
-              variant="secondary" 
+            <Badge
+              variant="secondary"
               className="absolute -top-2 -right-2 bg-warning text-warning-foreground"
             >
               {getTotalItems()}

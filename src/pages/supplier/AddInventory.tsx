@@ -4,23 +4,19 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { 
-  ArrowLeft, 
-  Camera, 
+import {
+  ArrowLeft,
+  Camera,
   Upload,
   Save
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
-interface AddInventoryProps {
-  language: 'hi' | 'en';
-  onBack: () => void;
-  onSave: () => void;
-}
-
-export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) => {
+export const AddInventory = () => {
   const [itemName, setItemName] = useState('');
   const [pricePerKg, setPricePerKg] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -30,6 +26,8 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
   const [isLoading, setIsLoading] = useState(false);
   const { userProfile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { language } = useOrder();
 
   const text = {
     hi: {
@@ -96,7 +94,7 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
     }
 
     setIsLoading(true);
-    
+
     try {
       let imageUrl = null;
 
@@ -104,7 +102,7 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
       if (selectedImage) {
         const fileExt = selectedImage.name.split('.').pop();
         const fileName = `items/${userProfile.id}/${Date.now()}.${fileExt}`;
-        
+
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('delivery-proofs')
           .upload(fileName, selectedImage);
@@ -114,7 +112,7 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
         const { data: { publicUrl } } = supabase.storage
           .from('delivery-proofs')
           .getPublicUrl(fileName);
-        
+
         imageUrl = publicUrl;
       }
 
@@ -136,7 +134,7 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
         description: "Item added successfully!",
       });
 
-      onSave();
+      navigate('/supplier/inventory');
     } catch (error: any) {
       console.error('Error saving item:', error);
       toast({
@@ -161,10 +159,10 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
       )}
       {/* Header */}
       <div className="bg-white shadow-card p-4 flex items-center">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={onBack}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate(-1)}
           className="mr-3"
         >
           <ArrowLeft className="w-6 h-6" />
@@ -187,19 +185,19 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
                 <div className="w-32 h-32 bg-muted rounded-lg mx-auto flex items-center justify-center border-2 border-dashed border-muted-foreground">
                   <Camera className="w-12 h-12 text-muted-foreground" />
                 </div>
-                
+
                 <div className="space-y-3">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="w-full"
                     onClick={handleImageUpload}
                   >
                     <Upload className="w-5 h-5 mr-2" />
                     {t.uploadPhoto}
                   </Button>
-                  
-                  <Button 
-                    variant="ghost" 
+
+                  <Button
+                    variant="ghost"
                     className="w-full"
                     onClick={handleImageUpload}
                   >
@@ -279,7 +277,7 @@ export const AddInventory = ({ language, onBack, onSave }: AddInventoryProps) =>
         </Card>
 
         {/* Save Button */}
-        <Button 
+        <Button
           variant="fresh"
           size="mobile"
           className="w-full"

@@ -1,19 +1,15 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Plus, Package, Upload, IndianRupee, Weight } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Plus, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface InventoryManagementProps {
-  language: 'hi' | 'en';
-  onBack: () => void;
-}
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
 interface Item {
   id: string;
@@ -23,19 +19,15 @@ interface Item {
   image_url?: string;
 }
 
-export const InventoryManagement = ({ language, onBack }: InventoryManagementProps) => {
+export const InventoryManagement = () => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    price_per_kg: '',
-    available_qty: ''
-  });
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({ name: '', price_per_kg: '', available_qty: '' });
   const { userProfile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { language } = useOrder();
 
   const text = {
     hi: {
@@ -89,42 +81,6 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
     }
   };
 
-  const handleAddItem = async () => {
-    if (!formData.name || !formData.price_per_kg || !userProfile?.id) return;
-
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from('items')
-        .insert([{
-          supplier_id: userProfile.id,
-          name: formData.name,
-          price_per_kg: parseFloat(formData.price_per_kg),
-          available_qty: parseFloat(formData.available_qty) || 0
-        }]);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: t.success,
-      });
-
-      setFormData({ name: '', price_per_kg: '', available_qty: '' });
-      setShowAddForm(false);
-      fetchItems();
-    } catch (error) {
-      console.error('Error adding item:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add item",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleEditItem = (item: Item) => {
     setEditItemId(item.id);
     setEditFormData({
@@ -132,7 +88,6 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
       price_per_kg: item.price_per_kg.toString(),
       available_qty: item.available_qty.toString()
     });
-    setShowAddForm(false);
   };
 
   const handleSaveEdit = async () => {
@@ -172,7 +127,7 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
     }
   };
 
-  if (loading) {
+  if (loading && items.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-fresh flex flex-col p-4">
         {[...Array(3)].map((_, i) => (
@@ -187,10 +142,10 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
       {/* Header */}
       <div className="bg-white shadow-card p-4">
         <div className="flex items-center mb-4">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon-lg"
-            onClick={onBack}
+            onClick={() => navigate('/supplier/dashboard')}
             className="mr-4"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -207,7 +162,7 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
           <Button
             variant="mobile"
             size="sm"
-            onClick={() => setShowAddForm(!showAddForm)}
+            onClick={() => navigate('/supplier/add-inventory')}
           >
             <Plus className="w-5 h-5 mr-2" />
             {t.addNew}
@@ -216,71 +171,6 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
       </div>
 
       <div className="p-4 space-y-6">
-        {/* Add Item Form */}
-        {showAddForm && (
-          <Card className="p-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>{t.itemName}</Label>
-                <Input
-                  placeholder="e.g., Onions, Potatoes, Tomatoes"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>{t.pricePerKg}</Label>
-                  <div className="relative">
-                    <IndianRupee className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      placeholder="50"
-                      value={formData.price_per_kg}
-                      onChange={(e) => setFormData({...formData, price_per_kg: e.target.value})}
-                      className="h-12 pl-10"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>{t.quantity}</Label>
-                  <div className="relative">
-                    <Weight className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      placeholder="100"
-                      value={formData.available_qty}
-                      onChange={(e) => setFormData({...formData, available_qty: e.target.value})}
-                      className="h-12 pl-10"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3">
-                <Button
-                  variant="mobile"
-                  onClick={handleAddItem}
-                  disabled={!formData.name || !formData.price_per_kg || loading}
-                  className="flex-1"
-                >
-                  {loading ? "Adding..." : t.save}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowAddForm(false)}
-                  className="flex-1"
-                >
-                  {t.cancel}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-
         {/* Items List */}
         <div className="space-y-4">
           {items.length === 0 ? (
@@ -289,7 +179,7 @@ export const InventoryManagement = ({ language, onBack }: InventoryManagementPro
               <h3 className="text-lg font-medium mb-2">{t.noItems}</h3>
               <Button
                 variant="mobile"
-                onClick={() => setShowAddForm(true)}
+                onClick={() => navigate('/supplier/add-inventory')}
               >
                 <Plus className="w-5 h-5 mr-2" />
                 {t.addFirst}

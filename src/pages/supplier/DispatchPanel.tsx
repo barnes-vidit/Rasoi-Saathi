@@ -8,21 +8,17 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, Camera, Truck, Package } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
-interface SupplierDispatchPanelProps {
-  language: 'hi' | 'en';
-  onBack: () => void;
-}
-
-export const SupplierDispatchPanel: React.FC<SupplierDispatchPanelProps> = ({
-  language,
-  onBack
-}) => {
+export const DispatchPanel = () => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
   const [groupOrders, setGroupOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const navigate = useNavigate();
+  const { language } = useOrder();
 
   const text = {
     hi: {
@@ -176,7 +172,7 @@ export const SupplierDispatchPanel: React.FC<SupplierDispatchPanelProps> = ({
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-md mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <Button variant="ghost" onClick={onBack}>
+          <Button variant="ghost" onClick={() => navigate('/supplier/dashboard')}>
             {text[language].back}
           </Button>
           <h1 className="text-xl font-bold">{text[language].title}</h1>
@@ -225,7 +221,8 @@ export const SupplierDispatchPanel: React.FC<SupplierDispatchPanelProps> = ({
                       </div>
                     ))}
 
-                    {order.status === 'closed' && (
+                    {/* Show upload for closed or forming orders to dispatch them? Usually closed -> dispatched */}
+                    {order.status !== 'dispatched' && order.status !== 'delivered' && (
                       <div className="mt-4">
                         <Label htmlFor={`proof-${order.id}`}>
                           {text[language].uploadProof}

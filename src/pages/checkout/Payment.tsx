@@ -1,33 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, CreditCard, IndianRupee, CheckCircle, XCircle, Clock, ShoppingCart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
-interface PaymentIntegrationProps {
-  language: 'hi' | 'en';
-  totalAmount: number;
-  cartItems: any[];
-  groupOrderId: string;
-  onBack: () => void;
-  onSuccess: () => void;
-}
-
-export const PaymentIntegration = ({ 
-  language, 
-  totalAmount, 
-  cartItems, 
-  groupOrderId,
-  onBack, 
-  onSuccess 
-}: PaymentIntegrationProps) => {
+export const PaymentIntegration = () => {
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'success' | 'failed'>('pending');
   const [paymentId, setPaymentId] = useState<string>('');
   const { userProfile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { language, cartItems, totalAmount, selectedGroupOrder, clearCart } = useOrder();
 
   const text = {
     hi: {
@@ -60,68 +47,81 @@ export const PaymentIntegration = ({
 
   const t = text[language];
 
+  // Recalculate if context gives 0 (could add logic in context to persist or re-calc)
+  // But context typically holds state. 
+  // Let's assume context values are correct.
+  // We can also re-derive discount from totalAmount if needed.
+  const discountAmount = Math.round((totalAmount / 0.85) * 0.15); // Reverse engineering for display or just use standard calc
+  // A better way:
   const originalAmount = cartItems.reduce((sum, item) => sum + (item.pricePerKg * item.quantity), 0);
-  const discountAmount = Math.round(originalAmount * 0.15);
+  const calculatedDiscount = Math.round(originalAmount * 0.15);
+  const finalAmount = originalAmount - calculatedDiscount; // Should match totalAmount (which is discounted in context?)
+  // Actually context `totalAmount` is usually the *sum of items*. `discountedAmount` is the final.
+  // Checking OrderContext: `totalAmount` is sum. `discountedAmount` is 85%.
+  // So I should use `discountedAmount` for payment.
+  // Wait, let's check `OrderContext.tsx` again.
+  // Step 155 shows: `setDiscountedAmount(Math.round(total * 0.85));`
+  // And exposed as `discountedAmount`.
+
+  // So Payment should use `discountedAmount` for actual payment.
+
+  const { discountedAmount } = useOrder();
 
   // Mock UPI payment simulation
   const handlePayment = async () => {
+    if (!userProfile?.id || paymentStatus === 'processing') return;
+
     setPaymentStatus('processing');
-    
+
     try {
-      // Simulate payment processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock payment success (90% success rate for demo)
-      const isSuccess = Math.random() > 0.1;
-      const mockPaymentId = `UPI_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
-      if (isSuccess) {
-        setPaymentId(mockPaymentId);
-        setPaymentStatus('success');
-        
-        // Create vendor orders for each item
-        const vendorOrders = cartItems.map(item => ({
-          vendor_id: userProfile?.id,
-          group_order_id: groupOrderId,
-          item_id: item.id,
-          quantity: item.quantity,
-          paid: true,
-          payment_id: mockPaymentId
-        }));
+      // First verify the order is still valid
+      if (!selectedGroupOrder) throw new Error('No active group order found');
 
-        const { error } = await supabase
-          .from('vendor_orders')
-          .insert(vendorOrders);
+      const { data: orderCheck, error: orderError } = await supabase
+        .from('group_orders')
+        .select('status')
+        .eq('id', selectedGroupOrder)
+        .single();
 
-        if (error) throw error;
-
-        // Update group order totals
-        await supabase.rpc('update_group_totals', { 
-          group_order_id_param: groupOrderId 
-        });
-
-        toast({
-          title: "Success",
-          description: t.success,
-        });
-
-        setTimeout(() => {
-          onSuccess();
-        }, 2000);
-      } else {
-        setPaymentStatus('failed');
-        toast({
-          title: "Payment Failed",
-          description: "Please try again",
-          variant: "destructive",
-        });
+      if (orderError || !orderCheck || orderCheck.status !== 'forming') {
+        throw new Error('Order is no longer valid for payment');
       }
-    } catch (error) {
+
+      const { data, error } = await supabase.functions.invoke('process-payment', {
+        body: {
+          amount: discountedAmount,
+          group_order_id: selectedGroupOrder,
+          items: cartItems
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      // Update payment status
+      setPaymentStatus('success');
+      setPaymentId(data.payment_id);
+
+      // Show success message
+      toast({
+        title: t.success,
+        description: `Payment ID: ${data.payment_id}`,
+      });
+
+      // Clear cart
+      clearCart();
+
+      // Call success callback -> navigate
+      setTimeout(() => {
+        navigate('/order-status');
+      }, 2000);
+    } catch (error: any) {
       console.error('Payment error:', error);
       setPaymentStatus('failed');
       toast({
-        title: "Error",
-        description: "Payment processing failed",
+        title: t.failed,
+        description: error.message || "Payment processing failed",
         variant: "destructive",
       });
     }
@@ -137,7 +137,7 @@ export const PaymentIntegration = ({
             <p className="text-muted-foreground">Please wait while we process your payment...</p>
           </Card>
         );
-      
+
       case 'success':
         return (
           <Card className="p-6 text-center bg-success/10 border-success">
@@ -147,32 +147,33 @@ export const PaymentIntegration = ({
             <p className="text-sm text-muted-foreground">Redirecting to order status...</p>
           </Card>
         );
-      
+
       case 'failed':
         return (
           <Card className="p-6 text-center bg-destructive/10 border-destructive">
             <XCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
             <h3 className="text-xl font-medium mb-2 text-destructive">{t.failed}</h3>
             <p className="text-muted-foreground mb-4">Something went wrong with your payment</p>
-            <Button 
-              variant="destructive" 
+            <Button
+              variant="destructive"
               onClick={() => setPaymentStatus('pending')}
             >
               {t.retry}
             </Button>
           </Card>
         );
-      
+
       default:
         return null;
     }
   };
 
-  if (cartItems.length === 0) {
+  if (cartItems.length === 0 && paymentStatus === 'pending') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8">
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-fresh">
         <ShoppingCart className="w-16 h-16 text-muted-foreground mb-4" />
         <h3 className="text-lg font-medium mb-2">{language === 'hi' ? 'कोई आइटम नहीं मिला' : 'No items in cart'}</h3>
+        <Button onClick={() => navigate(-1)}>{language === 'hi' ? 'वापस' : 'Go Back'}</Button>
       </div>
     );
   }
@@ -194,10 +195,10 @@ export const PaymentIntegration = ({
       {/* Header */}
       <div className="bg-white shadow-card p-4">
         <div className="flex items-center mb-4">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon-lg"
-            onClick={onBack}
+            onClick={() => navigate(-1)}
             className="mr-4"
             disabled={paymentStatus === 'processing'}
           >
@@ -221,7 +222,7 @@ export const PaymentIntegration = ({
             {/* Order Summary */}
             <Card className="p-6">
               <h3 className="text-lg font-medium mb-4">{t.orderSummary}</h3>
-              
+
               <div className="space-y-3">
                 {cartItems.map((item, index) => (
                   <div key={index} className="flex justify-between items-center">
@@ -246,17 +247,17 @@ export const PaymentIntegration = ({
                   <span>{t.total}</span>
                   <span>₹{originalAmount}</span>
                 </div>
-                
+
                 <div className="flex justify-between text-success">
                   <span>{t.discount}</span>
-                  <span>-₹{discountAmount}</span>
+                  <span>-₹{calculatedDiscount}</span>
                 </div>
-                
+
                 <hr className="my-3" />
-                
+
                 <div className="flex justify-between text-xl font-bold">
                   <span>{t.finalAmount}</span>
-                  <span>₹{totalAmount}</span>
+                  <span>₹{discountedAmount}</span>
                 </div>
               </div>
             </Card>
@@ -265,30 +266,30 @@ export const PaymentIntegration = ({
             <Card className="p-6">
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">UPI Payment</h3>
-                
+
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="p-4 border rounded-lg text-center">
+                  <div className="p-4 border rounded-lg text-center cursor-pointer hover:bg-gray-50 bg-white" onClick={handlePayment}>
                     <div className="w-12 h-12 bg-blue-100 rounded-lg mx-auto mb-2 flex items-center justify-center">
                       <span className="text-blue-600 font-bold text-lg">GPay</span>
                     </div>
                     <span className="text-sm">Google Pay</span>
                   </div>
-                  
-                  <div className="p-4 border rounded-lg text-center">
+
+                  <div className="p-4 border rounded-lg text-center cursor-pointer hover:bg-gray-50 bg-white" onClick={handlePayment}>
                     <div className="w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-2 flex items-center justify-center">
                       <span className="text-purple-600 font-bold text-lg">PE</span>
                     </div>
                     <span className="text-sm">PhonePe</span>
                   </div>
-                  
-                  <div className="p-4 border rounded-lg text-center">
+
+                  <div className="p-4 border rounded-lg text-center cursor-pointer hover:bg-gray-50 bg-white" onClick={handlePayment}>
                     <div className="w-12 h-12 bg-green-100 rounded-lg mx-auto mb-2 flex items-center justify-center">
                       <span className="text-green-600 font-bold text-lg">P</span>
                     </div>
                     <span className="text-sm">Paytm</span>
                   </div>
-                  
-                  <div className="p-4 border rounded-lg text-center">
+
+                  <div className="p-4 border rounded-lg text-center cursor-pointer hover:bg-gray-50 bg-white" onClick={handlePayment}>
                     <div className="w-12 h-12 bg-orange-100 rounded-lg mx-auto mb-2 flex items-center justify-center">
                       <CreditCard className="w-6 h-6 text-orange-600" />
                     </div>
@@ -299,14 +300,14 @@ export const PaymentIntegration = ({
             </Card>
 
             {/* Pay Button */}
-            <Button 
+            <Button
               variant="mobile"
               size="mobile"
               className="w-full"
               onClick={handlePayment}
             >
               <IndianRupee className="w-5 h-5 mr-2" />
-              {t.payNow} ₹{totalAmount}
+              {t.payNow} ₹{discountedAmount}
             </Button>
           </>
         )}

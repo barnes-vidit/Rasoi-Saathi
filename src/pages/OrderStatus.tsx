@@ -7,20 +7,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, Clock, Truck, Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
-interface OrderStatusIntegratedProps {
-  language: 'hi' | 'en';
-  onBack: () => void;
-}
-
-export const OrderStatusIntegrated: React.FC<OrderStatusIntegratedProps> = ({
-  language,
-  onBack
-}) => {
+export const OrderStatusIntegrated = () => {
   const { userProfile } = useAuth();
   const { toast } = useToast();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { language } = useOrder();
 
   const text = {
     hi: {
@@ -51,7 +47,51 @@ export const OrderStatusIntegrated: React.FC<OrderStatusIntegratedProps> = ({
 
   useEffect(() => {
     fetchOrders();
+
+    // Set up realtime subscription for order status updates
+    const channel = supabase
+      .channel('order-status-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'group_orders'
+        },
+        () => {
+          fetchOrders();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'vendor_orders'
+        },
+        () => {
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [userProfile]);
+
+  const getTimeLeft = (closeAt: string) => {
+    const now = new Date();
+    const closeTime = new Date(closeAt);
+    const diff = closeTime.getTime() - now.getTime();
+
+    if (diff <= 0) return "Expired";
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    return `${hours}h ${minutes}m`;
+  };
 
   const fetchOrders = async () => {
     if (!userProfile?.id) return;
@@ -65,20 +105,41 @@ export const OrderStatusIntegrated: React.FC<OrderStatusIntegratedProps> = ({
             id,
             status,
             created_at,
-            suppliers (name)
+            close_at,
+            zone,
+            suppliers (
+              name,
+              phone
+            )
           ),
-          items (name, price_per_kg)
+          items (
+            name,
+            price_per_kg,
+            image_url
+          )
         `)
         .eq('vendor_id', userProfile.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setOrders(data || []);
-    } catch (error) {
+
+      // Format the orders data
+      const formattedOrders = data?.map(order => ({
+        ...order,
+        group_orders: {
+          ...order.group_orders,
+          timeLeft: order.group_orders?.close_at ? getTimeLeft(order.group_orders.close_at) : null
+        }
+      }));
+
+      setOrders(formattedOrders || []);
+    } catch (error: any) {
       console.error('Error fetching orders:', error);
       toast({
-        title: "Error",
-        description: "Failed to fetch orders",
+        title: language === 'hi' ? "त्रुटि" : "Error",
+        description: language === 'hi' ?
+          "ऑर्डर लोड करने में समस्या" :
+          error.message || "Failed to fetch orders",
         variant: "destructive"
       });
     } finally {
@@ -119,7 +180,7 @@ export const OrderStatusIntegrated: React.FC<OrderStatusIntegratedProps> = ({
   return (
     <div className="min-h-screen bg-background pb-4">
       <div className="sticky top-0 z-10 bg-background px-4 pt-4 pb-2 shadow-sm flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack} className="mr-2">
+        <Button variant="ghost" onClick={() => navigate('/vendor/dashboard')} className="mr-2">
           {text[language].back}
         </Button>
         <h1 className="text-xl font-bold flex-1 text-center">{text[language].title}</h1>

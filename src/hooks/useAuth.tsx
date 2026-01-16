@@ -13,6 +13,7 @@ interface AuthContextType {
   verifyOtp: (phone: string, otp: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   createUserProfile: (data: any) => Promise<{ error: any }>;
+  updateVendorZone: (zone: string) => Promise<{ error: any }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,136 +27,82 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          // Fetch user profile to determine type
-          setTimeout(async () => {
-            await fetchUserProfile(session.user.id);
-          }, 0);
-        } else {
-          setUserProfile(null);
-          setUserType(null);
-        }
-        setLoading(false);
-      }
-    );
+    // Check for persisted demo session
+    const storedUser = localStorage.getItem('demo_user');
+    const storedProfile = localStorage.getItem('demo_profile');
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
-      }
-      setLoading(false);
-    });
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      setUser(parsedUser);
+      setSession({
+        access_token: 'demo-token',
+        refresh_token: 'demo-refresh-token',
+        expires_in: 3600,
+        token_type: 'bearer',
+        user: parsedUser
+      } as Session);
 
-    return () => subscription.unsubscribe();
+      if (storedProfile) {
+        const parsedProfile = JSON.parse(storedProfile);
+        setUserProfile(parsedProfile);
+        // Infer type based on profile fields
+        setUserType(parsedProfile.delivery_zones ? 'supplier' : 'vendor');
+      }
+    }
+    setLoading(false);
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
-    try {
-      // Check if user is a vendor
-      const { data: vendorData } = await supabase
-        .from('vendors')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (vendorData) {
-        setUserProfile(vendorData);
-        setUserType('vendor');
-        return;
-      }
-
-      // Check if user is a supplier
-      const { data: supplierData } = await supabase
-        .from('suppliers')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (supplierData) {
-        setUserProfile(supplierData);
-        setUserType('supplier');
-        return;
-      }
-
-      // No profile found
-      setUserProfile(null);
-      setUserType(null);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    }
-  };
-
   const signInWithPhone = async (phone: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: phone.startsWith('+91') ? phone : `+91${phone}`,
-        options: {
-          shouldCreateUser: true,
-        }
-      });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-
-      return { error };
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error };
-    }
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return { error: null };
   };
 
   const verifyOtp = async (phone: string, otp: string) => {
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        phone: phone.startsWith('+91') ? phone : `+91${phone}`,
-        token: otp,
-        type: 'sms'
-      });
+    await new Promise(resolve => setTimeout(resolve, 800));
 
-      if (error) {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Success",
-          description: "Login successful!",
-        });
-      }
+    // Create a stable deterministic ID for the demo user
+    // Using a valid UUID format
+    const demoId = '00000000-0000-0000-0000-000000000000';
 
-      return { error };
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error };
-    }
+    const demoUser = {
+      id: demoId,
+      email: 'demo@rasoisaathi.com',
+      phone: phone.startsWith('+91') ? phone : `+91${phone}`,
+      aud: 'authenticated',
+      role: 'authenticated',
+      created_at: new Date().toISOString(),
+      app_metadata: { provider: 'phone' },
+      user_metadata: {},
+      identities: [],
+      updated_at: new Date().toISOString(),
+    } as User;
+
+    const demoSession = {
+      access_token: 'demo-token',
+      refresh_token: 'demo-refresh-token',
+      expires_in: 3600,
+      token_type: 'bearer',
+      user: demoUser
+    } as Session;
+
+    setSession(demoSession);
+    setUser(demoUser);
+
+    localStorage.setItem('demo_user', JSON.stringify(demoUser));
+
+    toast({
+      title: "Success",
+      description: "Demo Login successful!",
+    });
+
+    return { error: null };
   };
 
   const createUserProfile = async (data: any) => {
     if (!user) return { error: { message: 'No user found' } };
+
+    await new Promise(resolve => setTimeout(resolve, 800));
 
     try {
       const profileData = {
@@ -165,64 +112,87 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         ...data
       };
 
-      let error;
-      if (data.type === 'vendor') {
-        const { error: vendorError } = await supabase
-          .from('vendors')
-          .insert([{
-            user_id: user.id,
-            name: data.name,
-            phone: data.phone,
-            zone: data.zone,
-            language: data.language || 'hi'
-          }]);
-        error = vendorError;
-      } else {
-        const { error: supplierError } = await supabase
-          .from('suppliers')
-          .insert([{
-            user_id: user.id,
-            name: data.name,
-            phone: data.phone,
-            delivery_zones: data.delivery_zones || []
-          }]);
-        error = supplierError;
+      // Try to save to Supabase "publicly" (requires RLS to be disabled/open)
+      // If it fails, we fall back to local storage so the demo never breaks
+      let dbError = null;
+
+      try {
+        if (data.type === 'vendor') {
+          const { error } = await supabase
+            .from('vendors')
+            .upsert({
+              user_id: user.id,
+              name: data.name,
+              phone: data.phone,
+              zone: data.zone,
+              language: data.language || 'hi'
+            }, { onConflict: 'user_id' });
+          dbError = error;
+        } else {
+          const { error } = await supabase
+            .from('suppliers')
+            .upsert({
+              user_id: user.id,
+              name: data.name,
+              phone: data.phone,
+              delivery_zones: data.delivery_zones || []
+            }, { onConflict: 'user_id' });
+          dbError = error;
+        }
+      } catch (err) {
+        console.warn("Backend save failed, continuing with local state", err);
       }
 
-      // Set user role in Supabase Auth metadata for claim enforcement
-      if (!error) {
-        await supabase.auth.updateUser({
-          data: { role: data.type }
-        });
-        await fetchUserProfile(user.id);
-        toast({
-          title: "Success",
-          description: "Profile created successfully!",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
+      if (dbError) {
+        console.warn("Backend save failed (likely RLS), continuing with local state", dbError);
+        // Do not throw here, let the demo proceed
       }
 
-      return { error };
-    } catch (error: any) {
+      setUserProfile(profileData);
+      setUserType(data.type);
+      localStorage.setItem('demo_profile', JSON.stringify(profileData));
+
       toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
+        title: "Success",
+        description: "Profile created (Demo Mode)",
       });
+
+      return { error: null };
+    } catch (error: any) {
+      console.error(error);
       return { error };
     }
   };
 
+  const updateVendorZone = async (zone: string) => {
+    if (!userProfile) return { error: { message: 'No profile' } };
+
+    const updatedProfile = { ...userProfile, zone };
+    setUserProfile(updatedProfile);
+    localStorage.setItem('demo_profile', JSON.stringify(updatedProfile));
+
+    // Try to update DB best-effort
+    try {
+      if (user) {
+        await supabase.from('vendors').update({ zone }).eq('user_id', user.id);
+      }
+    } catch (e) { /* ignore */ }
+
+    return { error: null };
+  };
+
   const signOut = async () => {
-    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+    setUserProfile(null);
+    setUserType(null);
+    localStorage.removeItem('demo_user');
+    localStorage.removeItem('demo_profile');
+    localStorage.removeItem('vendorZone');
+
     toast({
       title: "Signed out",
-      description: "You have been signed out successfully.",
+      description: "Demo session ended.",
     });
   };
 
@@ -238,6 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         verifyOtp,
         signOut,
         createUserProfile,
+        updateVendorZone,
       }}
     >
       {children}

@@ -3,16 +3,18 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  ArrowLeft, 
-  Truck, 
-  Camera, 
+import {
+  ArrowLeft,
+  Truck,
+  Camera,
   Mic,
   Send,
   CheckCircle,
   MapPin,
   Users
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
 interface DeliveryOrder {
   id: string;
@@ -23,17 +25,14 @@ interface DeliveryOrder {
   deliveryTime: string;
 }
 
-interface DeliveryStatusPanelProps {
-  language: 'hi' | 'en';
-  onBack: () => void;
-}
-
-export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelProps) => {
+export const DeliveryStatusPanel = () => {
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
   const [proofImage, setProofImage] = useState(false);
   const [voiceNote, setVoiceNote] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { language } = useOrder();
 
   useEffect(() => {
     setLoading(true);
@@ -133,10 +132,10 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
     <div className="min-h-screen bg-gradient-fresh">
       {/* Header */}
       <div className="bg-white shadow-card p-4 flex items-center">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={onBack}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/supplier/dashboard')}
           className="mr-3"
         >
           <ArrowLeft className="w-6 h-6" />
@@ -177,11 +176,11 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
                       {order.area}
                     </span>
                   </div>
-                  
+
                   <div className="text-sm text-muted-foreground mb-2 line-clamp-2">
                     {order.items.join(', ')}
                   </div>
-                  
+
                   <div className="flex items-center text-sm text-muted-foreground">
                     <Users className="w-4 h-4 mr-1 flex-shrink-0" />
                     <span className="truncate">
@@ -189,14 +188,14 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
                     </span>
                   </div>
                 </div>
-                
+
                 {getStatusBadge(order.status)}
               </div>
 
               {/* Action Buttons based on status */}
               <div className="space-y-3">
                 {order.status === 'preparing' && (
-                  <Button 
+                  <Button
                     variant="warning"
                     size="mobile"
                     className="w-full"
@@ -213,9 +212,9 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
                     )}
                   </Button>
                 )}
-                
+
                 {order.status === 'dispatched' && (
-                  <Button 
+                  <Button
                     variant="success"
                     size="mobile"
                     className="w-full"
@@ -235,7 +234,7 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
 
                 {order.status !== 'delivered' && (
                   <div className="grid grid-cols-2 gap-3">
-                    <Button 
+                    <Button
                       variant="outline"
                       className="h-12 text-xs px-2"
                       onClick={() => setProofImage(!proofImage)}
@@ -243,8 +242,8 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
                       <Camera className="w-4 h-4 mr-1 flex-shrink-0" />
                       <span className="truncate">{t.uploadProof}</span>
                     </Button>
-                    
-                    <Button 
+
+                    <Button
                       variant="outline"
                       className="h-12 text-xs px-2"
                       onClick={() => setVoiceNote(!voiceNote)}
@@ -283,7 +282,7 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
             <Send className="w-5 h-5 mr-2 text-primary flex-shrink-0" />
             <span className="truncate">{t.notifyVendors}</span>
           </h3>
-          
+
           <div className="space-y-4">
             <Textarea
               placeholder={t.messagePlaceholder}
@@ -291,8 +290,8 @@ export const DeliveryStatusPanel = ({ language, onBack }: DeliveryStatusPanelPro
               onChange={(e) => setMessage(e.target.value)}
               className="min-h-[80px]"
             />
-            
-            <Button 
+
+            <Button
               variant="fresh"
               size="mobile"
               className="w-full"

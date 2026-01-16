@@ -8,22 +8,28 @@ import { useGroupOrders } from "@/hooks/useRealtime";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
-interface GroupOrdersListIntegratedProps {
-  language: 'hi' | 'en';
-  onJoinOrder: (orderId: string) => void;
-  onStartOrder: () => void;
-}
-
-export const GroupOrdersListIntegrated = ({ 
-  language, 
-  onJoinOrder, 
-  onStartOrder 
-}: GroupOrdersListIntegratedProps) => {
+export const GroupOrdersListIntegrated = () => {
   const { userProfile, signOut } = useAuth();
   const { groupOrders, loading } = useGroupOrders(userProfile?.zone);
   const [joining, setJoining] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { language, setSelectedGroupOrder } = useOrder();
+
+  const handleStartNewOrder = () => {
+    if (!userProfile?.zone) {
+      toast({
+        title: language === 'hi' ? "त्रुटि" : "Error",
+        description: language === 'hi' ? "कृपया पहले अपना क्षेत्र चुनें" : "Please select your zone first",
+        variant: "destructive",
+      });
+      return;
+    }
+    navigate('/create-group-order');
+  };
 
   const text = {
     hi: {
@@ -95,7 +101,8 @@ export const GroupOrdersListIntegrated = ({
         title: 'Joined Successfully',
         description: 'You have joined the group order. Now select your items!',
       });
-      onJoinOrder(groupOrderId);
+      setSelectedGroupOrder(groupOrderId);
+      navigate('/items');
     } catch (error: any) {
       console.error('Error joining order:', error);
       toast({
@@ -112,17 +119,17 @@ export const GroupOrdersListIntegrated = ({
     const now = new Date();
     const closeTime = new Date(closeAt);
     const diff = closeTime.getTime() - now.getTime();
-    
+
     if (diff <= 0) return "Expired";
-    
+
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     return `${hours}h ${minutes}m`;
   };
 
   const getOrderTotal = (order: any) => {
-    return order.group_order_items?.reduce((total: number, item: any) => 
+    return order.group_order_items?.reduce((total: number, item: any) =>
       total + (item.total_qty * item.price_per_kg), 0) || 0;
   };
 
@@ -152,8 +159,8 @@ export const GroupOrdersListIntegrated = ({
           <h1 className="text-2xl font-bold text-foreground">{t.title}</h1>
           <p className="text-muted-foreground">{t.subtitle} - {userProfile?.zone}</p>
         </div>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           onClick={signOut}
         >
@@ -167,10 +174,10 @@ export const GroupOrdersListIntegrated = ({
           <div className="text-center py-12">
             <ShoppingCart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground mb-6">{t.noOrders}</p>
-            <Button 
+            <Button
               variant="mobile"
               size="mobile"
-              onClick={onStartOrder}
+              onClick={handleStartNewOrder}
               className="w-full max-w-xs"
             >
               <Plus className="w-5 h-5 mr-2" />
@@ -245,26 +252,19 @@ export const GroupOrdersListIntegrated = ({
 
             {/* Start New Order Button */}
             <div className="flex gap-2">
-              <Button 
+              <Button
                 variant="outline"
                 size="mobile"
-                onClick={onStartOrder}
+                onClick={handleStartNewOrder}
                 className="flex-1"
               >
                 <Plus className="w-5 h-5 mr-2" />
                 {t.startNew}
               </Button>
-              <Button 
+              <Button
                 variant="outline"
                 size="mobile"
-                onClick={() => {
-                  if (typeof setCurrentScreen === 'function') {
-                    setCurrentScreen('status');
-                  } else {
-                    // fallback for legacy: reload with ?screen=status
-                    window.location.href = '/?screen=status';
-                  }
-                }}
+                onClick={() => navigate('/order-status')}
                 className="flex-1"
               >
                 {language === 'hi' ? 'मेरे ऑर्डर' : 'My Orders'}

@@ -71,6 +71,17 @@ export const useGroupOrders = (zone?: string) => {
           fetchGroupOrders();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'vendor_orders'
+        },
+        () => {
+          fetchGroupOrders();
+        }
+      )
       .subscribe();
 
     return () => {

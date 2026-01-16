@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,19 +8,54 @@ import { ArrowLeft, Clock, Users, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useOrder } from "@/context/OrderContext";
 
-interface CreateGroupOrderProps {
-  language: 'hi' | 'en';
-  onBack: () => void;
-  onSuccess: () => void;
+interface Zone {
+  id: string;
+  name: string; // value to store
+  label: string; // display label
 }
 
-export const CreateGroupOrder = ({ language, onBack, onSuccess }: CreateGroupOrderProps) => {
+export const CreateGroupOrder = () => {
   const [selectedZone, setSelectedZone] = useState('');
   const [duration, setDuration] = useState('2'); // hours
   const [loading, setLoading] = useState(false);
+  const [zones, setZones] = useState<Zone[]>([]);
   const { userProfile } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { language } = useOrder();
+
+  useEffect(() => {
+    fetchZones();
+  }, []);
+
+  const fetchZones = async () => {
+    try {
+      const { data, error } = await supabase.from('zones').select('*').order('name');
+      if (error) throw error;
+
+      if (data) {
+        setZones(data.map(z => ({
+          id: z.id,
+          name: z.name,
+          label: `${z.display_name_hi} / ${z.display_name_en}`
+        })));
+      }
+    } catch (error) {
+      console.error('Error fetching zones:', error);
+      // Fallback
+      setZones([
+        { id: 'A', name: 'Zone A', label: 'चांदनी चौक / Chandni Chowk' },
+        { id: 'B', name: 'Zone B', label: 'करोल बाग / Karol Bagh' },
+        { id: 'C', name: 'Zone C', label: 'लाजपत नगर / Lajpat Nagar' },
+        { id: 'D', name: 'Zone D', label: 'गाजीपुर मंडी / Ghazipur Mandi' },
+        { id: 'E', name: 'Zone E', label: 'साकेत / Saket' },
+        { id: 'F', name: 'Zone F', label: 'द्वारका / Dwarka' },
+      ]);
+    }
+  }
 
   const text = {
     hi: {
@@ -43,29 +78,39 @@ export const CreateGroupOrder = ({ language, onBack, onSuccess }: CreateGroupOrd
 
   const t = text[language];
 
-  const zones = [
-    { id: 'Zone A', name: 'चांदनी चौक / Chandni Chowk' },
-    { id: 'Zone B', name: 'करोल बाग / Karol Bagh' },
-    { id: 'Zone C', name: 'लाजपत नगर / Lajpat Nagar' },
-    { id: 'Zone D', name: 'गाजीपुर मंडी / Ghazipur Mandi' },
-    { id: 'Zone E', name: 'साकेत / Saket' },
-    { id: 'Zone F', name: 'द्वारका / Dwarka' },
-  ];
-
-  if (zones.length === 0) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8">
-        <Package className="w-16 h-16 text-muted-foreground mb-4" />
-        <h3 className="text-lg font-medium mb-2">{language === 'hi' ? 'कोई ज़ोन नहीं मिला' : 'No zones found'}</h3>
-      </div>
-    );
-  }
-
   const handleCreateOrder = async () => {
-    if (!selectedZone || !userProfile?.id) return;
+    if (!selectedZone || !userProfile?.id) {
+      toast({
+        title: language === 'hi' ? "त्रुटि" : "Error",
+        description: language === 'hi' ?
+          "कृपया एक ज़ोन चुनें" :
+          "Please select a zone",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setLoading(true);
     try {
+      // Verify supplier has items in inventory
+      const { data: inventoryCheck, error: itemsCheckError } = await supabase
+        .from('items')
+        .select('id')
+        .eq('supplier_id', userProfile.id);
+
+      if (itemsCheckError) throw itemsCheckError;
+
+      if (!inventoryCheck?.length) {
+        toast({
+          title: language === 'hi' ? "त्रुटि" : "Error",
+          description: language === 'hi' ?
+            "कृपया पहले अपनी इन्वेंटरी में आइटम जोड़ें" :
+            "Please add items to your inventory first",
+          variant: "destructive"
+        });
+        return;
+      }
+
       // Create group order
       const closeAt = new Date();
       closeAt.setHours(closeAt.getHours() + parseInt(duration));
@@ -84,15 +129,15 @@ export const CreateGroupOrder = ({ language, onBack, onSuccess }: CreateGroupOrd
       if (groupError) throw groupError;
 
       // Get supplier's items and add them to group order
-      const { data: items, error: itemsError } = await supabase
+      const { data: supplierItems, error: itemsError } = await supabase
         .from('items')
         .select('*')
         .eq('supplier_id', userProfile.id);
 
       if (itemsError) throw itemsError;
 
-      if (items && items.length > 0) {
-        const groupOrderItems = items.map(item => ({
+      if (supplierItems && supplierItems.length > 0) {
+        const groupOrderItems = supplierItems.map(item => ({
           group_order_id: groupOrder.id,
           item_id: item.id,
           name: item.name,
@@ -112,7 +157,7 @@ export const CreateGroupOrder = ({ language, onBack, onSuccess }: CreateGroupOrd
         description: t.success,
       });
 
-      onSuccess();
+      navigate('/supplier/dashboard');
     } catch (error) {
       console.error('Error creating group order:', error);
       toast({
@@ -138,10 +183,10 @@ export const CreateGroupOrder = ({ language, onBack, onSuccess }: CreateGroupOrd
       {/* Header */}
       <div className="bg-white shadow-card p-4">
         <div className="flex items-center mb-4">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon-lg"
-            onClick={onBack}
+            onClick={() => navigate('/supplier/dashboard')}
             className="mr-4"
           >
             <ArrowLeft className="w-6 h-6" />
@@ -171,8 +216,8 @@ export const CreateGroupOrder = ({ language, onBack, onSuccess }: CreateGroupOrd
                 </SelectTrigger>
                 <SelectContent>
                   {zones.map((zone) => (
-                    <SelectItem key={zone.id} value={zone.id}>
-                      {zone.name}
+                    <SelectItem key={zone.id} value={zone.name}>
+                      {zone.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -227,7 +272,7 @@ export const CreateGroupOrder = ({ language, onBack, onSuccess }: CreateGroupOrd
         </Card>
 
         {/* Create Button */}
-        <Button 
+        <Button
           variant="mobile"
           size="mobile"
           className="w-full"
